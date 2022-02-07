@@ -28,6 +28,7 @@ class Propellant:
         self.burn_rate_n = burn_rate_n
         self.interpolation_list = interpolation_list
         self.calc_cstar()
+
         self.mean_burn_rate_index = 0
         self.mean_burn_rate_value = 0
     
@@ -50,7 +51,7 @@ class Propellant:
     def pressure_coeff(self):
         return 
 
-    def expontial_pressure_coeff(self):
+    def exponential_pressure_coeff(self):
         return 
 
 # === Test Values ===
@@ -64,4 +65,3 @@ class Propellant:
 #     0.9, 
 #     None
 # )
-
