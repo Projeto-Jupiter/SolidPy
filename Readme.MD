@@ -28,5 +28,6 @@ This project aims to build an easy-to-use and versatile simulation tool for soli
 * Homogeneous combustion products
 * No heat exchange with chamber walls (adiabatic)
 * No shockwaves or discontinuities in nozzle
+* Erosive burning is neglected
 * BATES grain
 * some others
