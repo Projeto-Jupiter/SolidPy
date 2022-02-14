@@ -37,9 +37,8 @@ class Outside:
         self.initial_velocity = 0.0
 
         self.thrust = thrust
-        #self.evaluate_out_rail_velocity()
-    
-    
+        self.end_rail_velocity = self.solve_rail()
+
     def evaluate_frontal_area(self, frontal_area):
         if frontal_area is None:
             frontal_area = np.pi*(self.rocket_radius**2)
@@ -61,19 +60,22 @@ class Outside:
 
         return vector_state
 
+    def solve_rail(self):
+        state_variables = [self.initial_position, self.initial_velocity]
+        parameters = [self.gravity, self.rocket_mass, self.frontal_area, 
+                      self.aerodynamic_drag_coefficient, self.air_density, 
+                      self.rail_angle, self.thrust]
+        time_span = 0.0, 1.0 #initial,  final
+        abserr = 1.0e-12
+        relerr = 1.0e-8
 
+        solution = solve_ivp(self.vector_field, time_span, state_variables, method='RK45', args=(parameters,), atol = abserr, rtol = relerr)
 
-    time_span = 0.0, 1.0 #initial,  final
-    state_variables = [self.initial_position, self.initial_velocity]
-    parameters = [self.gravity, self.rocket_mass, self.frontal_area, self.aerodynamic_drag_coefficient, self.air_density, self.rail_angle, self.thrust]
-    abserr = 1.0e-12
-    relerr = 1.0e-8
-
-    solution = solve_ivp(vector_field, time_span, state_variables, method='RK45', args=(parameters,), atol = abserr, rtol = relerr)
-
-    with open('rail_data.dat', 'w') as rail_data:
-        for solution_file in zip(solution):
-            if solution_file[0] > self.rail_length:
-                break
-            else:
-                print(solution_file[0], solution_file[1], file = rail_data)
+        with open('rail_data.dat', 'w') as rail_data:
+            for solution_file in zip(solution):
+                if solution_file[0] > self.rail_length:
+                    break
+                else:
+                    print(solution_file[0], solution_file[1], file = rail_data)
+        
+        return solution_file[0]
