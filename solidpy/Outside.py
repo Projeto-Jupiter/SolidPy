@@ -24,6 +24,7 @@ class Outside:
         gravity=9.8,
     ):
 
+        # Constant parameters
         self.atmospheric_pressure = atmospheric_pressure
         self.gravity = gravity
         self.rocket_mass = rocket_mass
@@ -32,12 +33,18 @@ class Outside:
         self.aerodynamic_drag_coefficient = aerodynamic_drag_coefficient
         self.air_density = air_density
         self.rail_length = rail_length
-        self.rail_angle = rail_angle  # wrt horizontal
+        self.rail_angle = rail_angle  # wrt. horizontal
         self.evaluate_frontal_area(self, frontal_area)
+
+        # Thrust vector temporary state
+        # pending future "Burn" class
+        self.thrust = thrust
+
+        # Initial state variable conditions
         self.initial_position = 0.0
         self.initial_velocity = 0.0
 
-        self.thrust = thrust
+        # Differential equation solution
         self.end_rail_velocity = self.solve_rail()
 
     def evaluate_frontal_area(self, frontal_area):
@@ -47,9 +54,7 @@ class Outside:
             self.frontal_area = frontal_area
 
     def vector_field(self, state_variables, time, parameters):
-
         position, velocity = state_variables
-
         (
             gravity,
             rocket_mass,
@@ -59,7 +64,6 @@ class Outside:
             rail_angle,
             thrust,
         ) = parameters
-
         k_drag = (air_density * aerodynamic_drag_coefficient * frontal_area) / 2
 
         vector_state = [
@@ -82,8 +86,8 @@ class Outside:
             self.thrust,
         ]
         time_span = 0.0, 1.0  # initial,  final
-        abserr = 1.0e-12
-        relerr = 1.0e-8
+        absolute_error = 1.0e-12
+        relative_error = 1.0e-8
 
         solution = solve_ivp(
             self.vector_field,
@@ -91,8 +95,8 @@ class Outside:
             state_variables,
             method="RK45",
             args=(parameters,),
-            atol=abserr,
-            rtol=relerr,
+            # atol=absolute_error, uncomment these lines
+            # rtol=relative_error, for manual error control
         )
 
         with open("rail_data.dat", "w") as rail_data:
