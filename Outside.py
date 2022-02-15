@@ -72,10 +72,10 @@ class Outside:
         solution = solve_ivp(self.vector_field, time_span, state_variables, method='RK45', args=(parameters,), atol = abserr, rtol = relerr)
 
         with open('rail_data.dat', 'w') as rail_data:
-            for solution_file in zip(solution):
-                if solution_file[0] > self.rail_length:
+            for solution_var, solution_time in zip(solution.y, solution.t):
+                if solution_var[0] > self.rail_length:
                     break
                 else:
-                    print(solution_file[0], solution_file[1], file = rail_data)
+                    print(solution_time, solution_var[0], solution_var[1], file = rail_data)
         
-        return solution_file[0]
+        return solution_var[1]
