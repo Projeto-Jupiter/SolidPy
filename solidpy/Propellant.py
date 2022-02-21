@@ -44,6 +44,7 @@ class Propellant:
             / (self.products_molecular_mass * k)
             * ((k + 1) / 2) ** ((k + 1) / (k - 1))
         )
+        return self.cstar
 
     # Test - Média Móvel
     def mean_burn_rate(self, current_burn_rate):
@@ -59,14 +60,13 @@ class Propellant:
         return
 
 
-# === Test Values ===
+knsb = Propellant(
+    1.1361,
+    1700,
+    39.86e-3, #kg/mol
+    1600, #K
+    5.8e-9,
+    0.9,
+    None
+)
 
-# knsb = Propellant(
-#     1.1361,
-#     1000,
-#     39.86e-3, #kg/mol
-#     1600, #K
-#     5.8e-9,
-#     0.9,
-#     None
-# )

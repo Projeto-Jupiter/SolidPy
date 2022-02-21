@@ -17,6 +17,7 @@ class Grain:
     ):
 
         self.outer_radius = outer_radius
+        self.initial_inner_radius = initial_inner_radius 
         self.inner_radius = initial_inner_radius
         self.evaluate_grain_initial_height(initial_height)
         self.height = self.initial_height
@@ -32,13 +33,15 @@ class Grain:
 
     def evaluate_grain_geometry(self):
         if self.geometry == "tubular":
-            self.evaluate_tubular_burn_area()
+            self.evaluate_tubular_burn_area(0)
         elif self.geometry == "star":
             pass
         else:
             print("Not a valid geometry type")
 
-    def evaluate_tubular_burn_area(self):
+    def evaluate_tubular_burn_area(self, regressed_length):
+        self.height = self.initial_height - 2*regressed_length
+        self.inner_radius = self.initial_inner_radius + regressed_length
         transversal_area = 2 * np.pi * (self.outer_radius**2 - self.inner_radius**2)
         longitudinal_area = 2 * np.pi * self.inner_radius * self.height
         self.burn_area = transversal_area + longitudinal_area
@@ -50,3 +53,8 @@ class Grain:
             np.pi * (self.outer_radius**2 - self.inner_radius**2) * self.height
         )
         return self.volume
+
+
+
+# Grao_Leviata = Grain(outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000)
+# print(Grao_Leviata.burn_area)

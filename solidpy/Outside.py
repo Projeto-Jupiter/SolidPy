@@ -4,7 +4,6 @@ _author_ = "Caio Eduardo dos Santos de Souza, Luís Felipe Biancardi Palharini, 
 _copyright_ = "x"
 _license_ = "x"
 
-
 import csv
 import numpy as np
 from scipy import interpolate
