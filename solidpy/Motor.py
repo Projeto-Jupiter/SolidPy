@@ -27,6 +27,7 @@ class Motor:
         self.evaluate_chamber_volume()
         self.evaluate_propellant_volume()
         self.evaluate_free_volume()
+        self.evaluate_total_burn_area()
         self.evaluate_Kn()
 
     def evaluate_chamber_length(self, chamber_length):
@@ -53,16 +54,6 @@ class Motor:
         self.Kn = (self.grain_number * self.grain.burn_area) / self.nozzle_throat_area
         return self.Kn
 
+    def evaluate_total_burn_area(self):
+        self.total_burn_area = self.grain_number * self.grain.burn_area
 
-""" Grao_Leviata = Grain(outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000)
-Leviata = Motor(
-    Grao_Leviata,
-    grain_number=4,
-    chamber_inner_radius=77.92 / 2000,
-    nozzle_throat_radius=8.75 / 2000,
-)
-print(Leviata.chamber_volume)
-print(Leviata.propellant_volume)
-print(Leviata.free_volume)
-print(Leviata.Kn)
- """

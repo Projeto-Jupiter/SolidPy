@@ -5,6 +5,8 @@ _copyright_ = "x"
 _license_ = "x"
 
 import math
+import csv
+import scipy.interpolate as interpolate
 import scipy.constants as const
 
 
@@ -15,27 +17,41 @@ class Propellant:
         density,
         products_molecular_mass,
         combustion_temperature,
-        burn_rate_a,
-        burn_rate_n,
-        interpolation_list,
+        **kwargs
     ):
         self.specific_heat_ratio = specific_heat_ratio
         self.density = density
         self.products_molecular_mass = products_molecular_mass
         self.products_constant = const.R / products_molecular_mass
         self.combustion_temperature = combustion_temperature
-        self.burn_rate_a = burn_rate_a
-        self.burn_rate_n = burn_rate_n
-        self.interpolation_list = interpolation_list
+
+        self.__dict__.update(kwargs)
         self.calc_cstar()
 
         self.mean_burn_rate_index = 0
         self.mean_burn_rate_value = 0
 
-    def burn_rate(self, chamber_pressure):
-        r = self.burn_rate_a * math.pow(chamber_pressure, self.burn_rate_n)
-        self.mean_burn_rate(r)
-        return r
+    def evaluate_burn_rate(self, chamber_pressure):
+        if "interpolation_list" in self.__dict__:
+            with open(self.interpolation_list, 'r') as interpolation_data: #open file       
+                reader = csv.reader(interpolation_data) #read csv
+                next(reader) #skip header
+                #initialize and store data
+                burn_rate_list = []
+                pressure_list = []
+                for line in reader:
+                    burn_rate_list.append(float(line[0]))
+                    pressure_list.append(float(line[1]))
+            r_function = interpolate.interp1d(burn_rate_list, pressure_list, kind='cubic')
+            r = r_function(chamber_pressure*1e-6) # r in mm/s; p in MPa
+            return r/1000
+        
+        elif "burn_rate_a" in self.__dict__ and "burn_rate_n" in self.__dict__:
+            r = self.burn_rate_a * math.pow(chamber_pressure*1e-6, self.burn_rate_n)
+            return r/1000
+        
+        else:
+            raise TypeError("Missing arguments. You must pass either an `interpolation_list` path or scalar ballistic coefficients `burn_rate_a` and `burn_rate_n` arguments to Propellant class")
 
     def calc_cstar(self):
         k = self.specific_heat_ratio
@@ -60,13 +76,21 @@ class Propellant:
         return
 
 
-knsb = Propellant(
-    1.1361,
-    1700,
-    39.86e-3, #kg/mol
-    1600, #K
-    5.8e-9,
-    0.9,
-    None
-)
+# knsb = Propellant(
+#     1.1361,
+#     1700,
+#     39.86e-3, #kg/mol
+#     1600, #K
+#     interpolation_list=r'C:\Users\ansys\Desktop\SolidPy\data\burnrate\KNSB.csv'
+# )
+
+# knsu = Propellant(
+#     1.1361,
+#     1700,
+#     39.86e-3, #kg/mol
+#     1600, #K
+#     burn_rate_a=5.8,
+#     burn_rate_n=0.22
+# )
+
 

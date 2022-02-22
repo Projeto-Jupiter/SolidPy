@@ -20,7 +20,7 @@ class Burn:
         self.motor = motor
         self.propellant = propellant
         self.initial_pressure = initial_pressure
-        self.grain_area = motor.grain.burn_area
+        self.burn_area = self.motor.total_burn_area # needs fixing
         self.set_parameters()
         self.time_span = 0.0, 2.0
         self.solve_burn()
@@ -50,18 +50,12 @@ class Burn:
         
         rho_0 = chamber_pressure / (R * T_0)  # product_gas_density
         nozzle_mass_flow = self.evaluate_nozzle_mass_flow(chamber_pressure)
-        grain_area = self.motor.grain.evaluate_tubular_burn_area(regressed_length)
-        burn_rate = self.propellant.burn_rate(chamber_pressure)
-        print((grain_area * burn_rate * (rho_g - rho_0) - nozzle_mass_flow) * R * T_0 / free_volume)
-        print(grain_area)
-        print(rho_g)
-        print(rho_0)
-        print(const.R)
-        print()
+        burn_area = self.motor.grain_number*self.motor.grain.evaluate_tubular_burn_area(regressed_length)
+        burn_rate = self.propellant.evaluate_burn_rate(chamber_pressure)
 
         vector_state = [
-            (grain_area * burn_rate * (rho_g - rho_0) - nozzle_mass_flow) * R * T_0 / free_volume,
-            grain_area * burn_rate,
+            (burn_area * burn_rate * (rho_g - rho_0) - nozzle_mass_flow) * R * T_0 / free_volume,
+            burn_area * burn_rate,
             burn_rate
         ]
 
@@ -76,7 +70,7 @@ class Burn:
             self.time_span,
             state_variables,
             method="RK45",
-            t_eval=np.linspace(0.0, 2.0, 100),
+            t_eval=np.linspace(0.0, 2.0, 10000),
             # atol=absolute_error,
             # rtol=relative_error,
         )
@@ -103,8 +97,7 @@ class Burn:
     def all_info():
         return None
 
-Grao_Leviata = Grain(outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000)
-Leviata = Motor(Grao_Leviata,grain_number=4,chamber_inner_radius=77.92 / 2000,nozzle_throat_radius=8.75 / 2000)
-KNSB = Propellant(specific_heat_ratio=1.1361, density=1700, products_molecular_mass=39.86e-3, combustion_temperature=1600, burn_rate_a=5.8e-9, burn_rate_n=0.9, interpolation_list=None)
-Simulacao = Burn(Leviata, KNSB, initial_pressure = 3000000)
-print(Simulacao.solution.y[0])
+Grao_Leviata = Grain(outer_radius=71.92/2000, initial_inner_radius=31.92/2000)
+Leviata = Motor(Grao_Leviata, grain_number=4, chamber_inner_radius=77.92/2000, nozzle_throat_radius=17.5/2000)
+KNSB = Propellant(specific_heat_ratio=1.1361, density=1700, products_molecular_mass=39.9e-3, combustion_temperature=1600, interpolation_list=r'C:\Users\ProjetoJupiter\SolidPy\data\burnrate\KNSB.csv')
+Simulacao = Burn(Leviata, KNSB)
