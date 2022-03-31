@@ -22,7 +22,7 @@ class Burn:
         self.initial_pressure = initial_pressure
         self.burn_area = self.motor.total_burn_area # needs fixing
         self.set_parameters()
-        self.time_span = 0.0, 2.0
+        self.time_span = 0.0, 2.5
         self.solve_burn()
 
     def set_parameters(self):
@@ -65,12 +65,23 @@ class Burn:
         regressed_length = 0
         state_variables = [self.initial_pressure, self.motor.free_volume, regressed_length]
 
+        def end_burn(time, state_variables):
+            chamber_pressure, free_volume, regressed_length = state_variables
+            if ((self.motor.chamber_volume - free_volume < 10e-10)
+                or (31.92/2000 + regressed_length >= 71.92/2000)
+                or (chamber_pressure == self.initial_pressure + 1)):
+                return 0
+            return 1
+
+        end_burn.terminal = True
+
         self.solution = solve_ivp(
             self.vector_field,
             self.time_span,
             state_variables,
             method="RK45",
-            t_eval=np.linspace(0.0, 2.0, 10000),
+            t_eval=np.linspace(0.0, 2.5, 1001),
+            events=end_burn,
             # atol=absolute_error,
             # rtol=relative_error,
         )
@@ -81,10 +92,7 @@ class Burn:
             for solution_time, solution_chamber_pressure, solution_free_volume, solution_regressed_length in zip(
                 self.solution.t, self.solution.y[0], self.solution.y[1], self.solution.y[2]
             ):
-                if self.motor.chamber_volume - solution_free_volume < 10e-10:
-                    break
-                else:
-                    solution_writer.writerow(
+                solution_writer.writerow(
                         [solution_time, solution_chamber_pressure, solution_free_volume, solution_regressed_length]
                     )
                     
@@ -99,5 +107,5 @@ class Burn:
 
 Grao_Leviata = Grain(outer_radius=71.92/2000, initial_inner_radius=31.92/2000)
 Leviata = Motor(Grao_Leviata, grain_number=4, chamber_inner_radius=77.92/2000, nozzle_throat_radius=17.5/2000)
-KNSB = Propellant(specific_heat_ratio=1.1361, density=1700, products_molecular_mass=39.9e-3, combustion_temperature=1600, interpolation_list=r'C:\Users\ProjetoJupiter\SolidPy\data\burnrate\KNSB.csv')
+KNSB = Propellant(specific_heat_ratio=1.1361, density=1700, products_molecular_mass=39.9e-3, combustion_temperature=1600, interpolation_list='data/burnrate/KNSB.csv')
 Simulacao = Burn(Leviata, KNSB)
