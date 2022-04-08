@@ -40,7 +40,7 @@ class Burn:
         )
 
     def evaluate_nozzle_mass_flow(self, chamber_pressure):
-        T_0, R, rho_g, k, A_t = self.parameters
+        T_0, R, _, k, A_t = self.parameters
         return (
             chamber_pressure
             * A_t
@@ -51,7 +51,7 @@ class Burn:
     def vector_field(self, time, state_variables):
 
         chamber_pressure, free_volume, regressed_length = state_variables
-        T_0, R, rho_g, k, A_t = self.parameters
+        T_0, R, rho_g, _, _ = self.parameters
 
         rho_0 = chamber_pressure / (R * T_0)  # product_gas_density
         nozzle_mass_flow = self.evaluate_nozzle_mass_flow(chamber_pressure)
@@ -138,7 +138,7 @@ class Burn:
                 )
 
     def evaluate_exit_mach(self):
-        T_0, R, rho_g, k, A_t = self.parameters
+        _, _, _, k, _ = self.parameters
         func = (
             lambda mach_number: math.pow((k + 1) / 2, -(k + 1) / (2 * (k - 1)))
             * math.pow((1 + (k - 1) / 2 * mach_number**2), (k + 1) / (2 * (k - 1)))
@@ -149,7 +149,7 @@ class Burn:
         return mach
 
     def evaluate_exit_pressure(self, chamber_pressure):
-        T_0, R, rho_g, k, A_t = self.parameters
+        _, _, _, k, _ = self.parameters
         exit_pressure = chamber_pressure * math.pow(
             (1 + (k - 1) / 2 * self.evaluate_exit_mach()[0] ** 2), -k / (k - 1)
         )
@@ -165,17 +165,10 @@ class Burn:
         thrust = (
             self.evaluate_nozzle_mass_flow(chamber_pressure)
             * self.evaluate_exit_velocity()
-            + (self.evaluate_exit_pressure(chamber_pressure) - self.initial_pressure)
-            * self.motor.nozzle_exit_area
         )
         return thrust
 
     def post_processing(self):
-        print(self.evaluate_exit_mach())
-        print(self.evaluate_exit_pressure(4073878.314629354))
-        print(self.evaluate_exit_pressure(4073878.314629354) / self.initial_pressure)
-        print(self.evaluate_thrust(4073878.314629354))
-
         (
             time,
             thrust,
