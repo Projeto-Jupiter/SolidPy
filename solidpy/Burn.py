@@ -116,24 +116,29 @@ class Burn:
                     "Regressed Length",
                 ]
             )
-            for time, chamber_pressure, free_volume, regressed_length in zip(
+            for (
+                self.time,
+                self.chamber_pressure,
+                self.free_volume,
+                self.regressed_length,
+            ) in zip(
                 self.solution.t,
                 self.solution.y[0],
                 self.solution.y[1],
                 self.solution.y[2],
             ):
-                exit_pressure = self.evaluate_exit_pressure(chamber_pressure)
-                exit_velocity = self.evaluate_exit_velocity()
-                thrust = self.evaluate_thrust(chamber_pressure)
+                self.evaluate_exit_pressure()
+                self.evaluate_exit_velocity()
+                self.evaluate_thrust2()
                 solution_writer.writerow(
                     [
-                        time,
-                        thrust,
-                        chamber_pressure,
-                        exit_pressure,
-                        exit_velocity,
-                        free_volume,
-                        regressed_length,
+                        self.time,
+                        self.thrust,
+                        self.chamber_pressure,
+                        self.exit_pressure,
+                        self.exit_velocity,
+                        self.free_volume,
+                        self.regressed_length,
                     ]
                 )
 
@@ -145,28 +150,42 @@ class Burn:
             / mach_number
             - self.motor.expansion_ratio
         )
-        mach = fsolve(func, 2)
-        return mach
+        self.exit_mach = fsolve(func, 2)[0]
+        return self.exit_mach
 
-    def evaluate_exit_pressure(self, chamber_pressure):
+    def evaluate_exit_pressure(self):
         _, _, _, k, _ = self.parameters
-        exit_pressure = chamber_pressure * math.pow(
-            (1 + (k - 1) / 2 * self.evaluate_exit_mach()[0] ** 2), -k / (k - 1)
+        self.exit_pressure = self.chamber_pressure * math.pow(
+            (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
         )
-        return exit_pressure
+        return self.exit_pressure
 
     def evaluate_exit_velocity(self):
-        T_0, R, rho_g, k, A_t = self.parameters
-        exit_velocity = self.evaluate_exit_mach()[0] * math.sqrt(k * R * T_0)
-        return exit_velocity
+        T_0, R, _, k, _ = self.parameters
+        self.exit_velocity = self.evaluate_exit_mach() * math.sqrt(k * R * T_0)
+        return self.exit_velocity
 
-    def evaluate_thrust(self, chamber_pressure):
+    def evaluate_Cf(self):
+        _, _, _, k, _ = self.parameters
+        self.Cf = math.sqrt(
+            (2 * k / (k - 1))
+            * math.pow(2 / (k + 1), (k + 1) / (k - 1))
+            * (1 - math.pow(self.exit_pressure / self.chamber_pressure, (k - 1) / k))
+        )
+        return self.Cf
+
+    def evaluate_thrust(self):
         T_0, R, rho_g, k, A_t = self.parameters
-        thrust = (
-            self.evaluate_nozzle_mass_flow(chamber_pressure)
+        self.thrust = (
+            self.evaluate_nozzle_mass_flow(self.chamber_pressure)
             * self.evaluate_exit_velocity()
         )
-        return thrust
+        return self.thrust
+
+    def evaluate_thrust2(self):
+        self.evaluate_Cf()
+        self.thrust = self.Cf * self.chamber_pressure * self.motor.nozzle_throat_area
+        return self.thrust
 
     def post_processing(self):
         (
