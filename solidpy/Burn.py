@@ -132,7 +132,7 @@ class Burn:
             ):
                 self.evaluate_exit_pressure(self.chamber_pressure)
                 self.evaluate_exit_velocity()
-                self.evaluate_thrust2()
+                self.evaluate_thrust(self.chamber_pressure)
                 solution_writer.writerow(
                     [
                         self.time,
@@ -179,13 +179,13 @@ class Burn:
 
     def evaluate_thrust(self, chamber_pressure):
         T_0, R, rho_g, k, A_t = self.parameters
-        thrust = (
+        self.thrust = (
             self.evaluate_nozzle_mass_flow(chamber_pressure)
             * self.evaluate_exit_velocity()
             + (self.evaluate_exit_pressure(chamber_pressure) - self.initial_pressure)
             * self.motor.nozzle_exit_area
         )
-        return thrust
+        return self.thrust
 
     def evaluate_thrust2(self):
         self.evaluate_Cf()

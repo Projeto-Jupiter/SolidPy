@@ -184,5 +184,5 @@ ext_time_list, ext_thrust = np.loadtxt(
 
 thrust = interpolate.interp1d(ext_time_list, ext_thrust)
 
-Keron_test = Outside(10e5, 10, 21.4e-3, 0.5, 1.25, 3, np.pi / 2, None, thrust)
+Keron_test = Outside(10e5, 10, 21.4e-3, 0.5, 1.25, 4, np.pi / 2, None, thrust)
 print(Keron_test.end_rail_velocity)

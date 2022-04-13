@@ -40,8 +40,8 @@ class Propellant:
                 burn_rate_list = []
                 pressure_list = []
                 for line in reader:
-                    burn_rate_list.append(float(line[0]))
-                    pressure_list.append(float(line[1]))
+                    burn_rate_list.append(float(line[1]))
+                    pressure_list.append(float(line[0]))
             r_function = interpolate.interp1d(
                 burn_rate_list, pressure_list, kind="cubic"
             )
