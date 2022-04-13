@@ -44,7 +44,7 @@ class Outside:
         # Initial differential equation conditions
         self.initial_position = 0.0
         self.initial_velocity = 0.0
-        self.time_span = 29.086, 34.36
+        self.time_span = 0.0, 2.5
         # M for Manual, A for Auto, ESn for Evenly Spaced (n=number steps)
         self.time_method = "M"
 
@@ -78,6 +78,31 @@ class Outside:
 
         return vector_state
 
+    def evaluate_jacobian(self, time, state_variables, parameters):
+        position, velocity = state_variables
+        (
+            gravity,
+            rocket_mass,
+            frontal_area,
+            aerodynamic_drag_coefficient,
+            air_density,
+            rail_angle,
+            thrust,
+        ) = parameters
+        k_drag = (air_density * aerodynamic_drag_coefficient * frontal_area) / 2
+
+        dvelocity_dposition = 0
+        dvelocity_dvelocity = 1
+        dacceleration_dposition = 0
+        dacceleration_dvelocity = -2 * k_drag * velocity / rocket_mass
+
+        jacobian = [
+            [dvelocity_dposition, dvelocity_dvelocity],
+            [dacceleration_dposition, dacceleration_dvelocity],
+        ]
+
+        return jacobian
+
     def set_time_steps(self):
         time_method = self.time_method
         time_span = self.time_span
@@ -107,15 +132,26 @@ class Outside:
         absolute_error = 1.0e-12
         relative_error = 1.0e-8
 
+        def end_rail(time, state_variables, parameters):
+            position = state_variables[0]
+            if position >= self.rail_length:
+                return 0
+            return 1
+
+        end_rail.terminal = True
+
         """Solver"""
         # uncomment "atol" and "rtol" for manual error control
         solution = solve_ivp(
             self.vector_field,
             self.time_span,
             state_variables,
-            method="RK45",
+            method="BDF",
             t_eval=self.set_time_steps(),
             args=(parameters,),
+            events=end_rail,
+            max_step=0.005,
+            jac=self.evaluate_jacobian
             # atol=absolute_error,
             # rtol=relative_error,
         )
@@ -127,23 +163,26 @@ class Outside:
             for solution_time, solution_position, solution_velocity in zip(
                 solution.t, solution.y[0], solution.y[1]
             ):
-                if solution_position > self.rail_length:
-                    break
-                else:
-                    solution_writer.writerow(
-                        [solution_time, solution_position, solution_velocity]
-                    )
+                solution_writer.writerow(
+                    [solution_time, solution_position, solution_velocity]
+                )
 
         return solution_velocity
 
 
 """Simulation for testing and debugging purposes only"""
 
-data_path = "data/static_fires/Keron.csv"
+# data_path = "data/static_fires/Keron.csv"
+# ext_time_list, ext_thrust = np.loadtxt(
+#    data_path, delimiter=";", unpack=True, skiprows=1
+# )
+
+data_path = "data/burn_simulation/burn_data.csv"
 ext_time_list, ext_thrust = np.loadtxt(
-    data_path, delimiter=";", unpack=True, skiprows=1
+    data_path, delimiter=",", unpack=True, skiprows=1, usecols=(0, 1)
 )
+
 thrust = interpolate.interp1d(ext_time_list, ext_thrust)
 
-Keron_test = Outside(10e5, 10, 21.4e-3, 0.5, 1.25, 10, np.pi / 2, None, thrust)
+Keron_test = Outside(10e5, 10, 21.4e-3, 0.5, 1.25, 3, np.pi / 2, None, thrust)
 print(Keron_test.end_rail_velocity)
