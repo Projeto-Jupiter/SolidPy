@@ -157,14 +157,14 @@ class Burn:
         return self.exit_mach
 
     def evaluate_exit_pressure(self, chamber_pressure):
-        T_0, R, rho_g, k, A_t = self.parameters
+        _, _, _, k, _ = self.parameters
         self.exit_pressure = chamber_pressure * math.pow(
             (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
         )
         return self.exit_pressure
 
     def evaluate_exit_velocity(self):
-        T_0, R, rho_g, k, A_t = self.parameters
+        T_0, R, _, k, _ = self.parameters
         self.exit_velocity = self.evaluate_exit_mach() * math.sqrt(k * R * T_0)
         return self.exit_velocity
 
@@ -178,7 +178,6 @@ class Burn:
         return self.Cf
 
     def evaluate_thrust(self, chamber_pressure):
-        T_0, R, rho_g, k, A_t = self.parameters
         self.thrust = (
             self.evaluate_nozzle_mass_flow(chamber_pressure)
             * self.evaluate_exit_velocity()
@@ -194,9 +193,7 @@ class Burn:
 
     def empirical_evaluate_chamber_pressure(self):
 
-        mach_number = self.evaluate_exit_mach()
         exit_velocity = self.evaluate_exit_velocity()
-        T_0, R, rho_g, k, A_t = self.parameters
 
         chamber_pressure_list = []
 
@@ -212,12 +209,17 @@ class Burn:
                     )
                 )
 
-                current_chamber_pressure = fsolve(func, 25 * 10e5)
+                current_chamber_pressure = fsolve(func, 22 * 10e5)[0]
                 chamber_pressure_list.append(current_chamber_pressure)
 
             return chamber_pressure_list
 
         return None
+
+    def evaluate_max_list(self, list):
+        max_index = np.argmax(list)
+        max_value = list[max_index]
+        return max_value, max_index
 
     def post_processing(self):
         (
@@ -231,6 +233,16 @@ class Burn:
         ) = np.loadtxt(
             "data/burn_simulation/burn_data.csv", delimiter=",", unpack=True, skiprows=1
         )
+
+        self.max_thrust = self.evaluate_max_list(thrust)
+        self.max_chamber_pressure = self.evaluate_max_list(chamber_pressure)
+        self.max_exit_pressure = self.evaluate_max_list(exit_pressure)
+        self.max_empirical_thrust = self.evaluate_max_list(self.empirical_thrust)
+        self.max_empirical_chamber_pressure = self.evaluate_max_list(
+            self.empirical_chamber_pressure
+        )
+        self.end_free_volume = free_volume[-1]
+        self.end_regressed_length = regressed_length[-1]
 
         figure(1, figsize=(16, 9))
         xlabel("t")
@@ -303,12 +315,14 @@ class Burn:
         return None
 
     def info():
+
         return None
 
     def all_info():
         return None
 
 
+"""Rocket definitions"""
 Grao_Leviata = Grain(outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000)
 Leviata = Motor(
     Grao_Leviata,
@@ -325,19 +339,19 @@ KNSB = Propellant(
     interpolation_list="data/burnrate/KNSB.csv",
 )
 
-# Simulacao = Burn(Leviata, KNSB)
-
+"""Static-fire data"""
+# static fire data needs pre formatting
 data_path = "data/static_fires/EmpuxoLeviata.csv"
 ext_data = np.loadtxt(
     data_path,
     delimiter=",",
     unpack=True,
     skiprows=1,
-    max_rows=2597,
-    converters={0: lambda x: float((x[1:])[:-1]), 1: lambda y: float((y[1:])[:-1])},
 )
-#static fire data needs pre formatting
 
 Simulacao = Burn(Leviata, KNSB, 101325, ext_data)
 
 Simulacao.post_processing()
+
+print(Simulacao.max_thrust)
+print(Simulacao.max_empirical_thrust)
