@@ -28,6 +28,8 @@ class Burn:
         self.set_parameters()
         self.time_span = 0.0, 2.5
         self.solve_burn()
+        self.raw_simulation_data_export()
+        self.gravity = 9.81
 
         """Empirical known results (e.g. static-fire)"""
         self.empirical_time_steps, self.empirical_thrust = empirical_data
@@ -83,7 +85,7 @@ class Burn:
             regressed_length,
         ]
 
-        def end_burn(time, state_variables):
+        def end_burn_propellant(time, state_variables):
             chamber_pressure, free_volume, regressed_length = state_variables
             if (
                 (self.motor.chamber_volume - free_volume < 10e-10)
@@ -93,7 +95,7 @@ class Burn:
                 return 0
             return 1
 
-        end_burn.terminal = True
+        end_burn_propellant.terminal = True
 
         self.solution = solve_ivp(
             self.vector_field,
@@ -101,10 +103,105 @@ class Burn:
             state_variables,
             method="RK45",
             t_eval=np.linspace(0.0, 2.5, 1001),
-            events=end_burn,
+            events=end_burn_propellant,
             # atol=absolute_error,
             # rtol=relative_error,
         )
+
+    def evaluate_exit_mach(self):
+        _, _, _, k, _ = self.parameters
+        func = (
+            lambda mach_number: math.pow((k + 1) / 2, -(k + 1) / (2 * (k - 1)))
+            * math.pow((1 + (k - 1) / 2 * mach_number**2), (k + 1) / (2 * (k - 1)))
+            / mach_number
+            - self.motor.expansion_ratio
+        )
+        self.exit_mach = fsolve(func, 2)[0]
+        return self.exit_mach
+
+    def evaluate_exit_pressure(self, chamber_pressure):
+        _, _, _, k, _ = self.parameters
+        self.exit_pressure = chamber_pressure * math.pow(
+            (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
+        )
+        return self.exit_pressure
+
+    def evaluate_exit_temperature(self):
+        T_0, _, _, k, _ = self.parameters
+        self.exit_temperature = T_0 / (1 + (k - 1) / 2 * self.exit_mach**2)
+        return self.exit_temperature
+
+    def evaluate_exit_velocity(self):
+        _, R, _, k, _ = self.parameters
+        self.exit_velocity = self.evaluate_exit_mach() * math.sqrt(
+            k * R * self.evaluate_exit_temperature()
+        )
+        return self.exit_velocity
+
+    def evaluate_Cf(self):
+        _, _, _, k, _ = self.parameters
+        self.Cf = math.sqrt(
+            (2 * k / (k - 1))
+            * math.pow(2 / (k + 1), (k + 1) / (k - 1))
+            * (1 - math.pow(self.exit_pressure / self.chamber_pressure, (k - 1) / k))
+        )
+        return self.Cf
+
+    def evaluate_thrust(self, chamber_pressure):
+        self.thrust = (
+            self.evaluate_nozzle_mass_flow(chamber_pressure)
+            * self.evaluate_exit_velocity()
+            + (self.evaluate_exit_pressure(chamber_pressure) - self.initial_pressure)
+            * self.motor.nozzle_exit_area
+        )
+        return self.thrust
+
+    def evaluate_thrust2(self):
+        self.evaluate_Cf()
+        self.thrust = self.Cf * self.chamber_pressure * self.motor.nozzle_throat_area
+        return self.thrust
+
+    def evaluate_specific_impulse(self, chamber_pressure_list, thrust_list):
+        self.specific_impulse_list = []
+        for chamber_pressure, thrust in zip(chamber_pressure_list, thrust_list):
+            self.specific_impulse_list.append(
+                thrust / (self.evaluate_nozzle_mass_flow(chamber_pressure))
+            )
+        specific_impulse = np.average(self.specific_impulse_list) / self.gravity
+        return specific_impulse
+
+    def empirical_evaluate_chamber_pressure(self):
+        T_0, R, _, k, A_t = self.parameters
+        chamber_pressure_list = []
+
+        if self.empirical_thrust is not None:
+            for thrust in self.empirical_thrust:
+
+                current_chamber_pressure = (
+                    thrust + self.motor.nozzle_exit_area * self.initial_pressure
+                ) / (
+                    A_t
+                    * np.sqrt(k / (R * T_0))
+                    * math.pow((2 / (k + 1)), ((k + 1) / (2 * (k - 1))))
+                    * self.evaluate_exit_velocity()
+                    + math.pow(
+                        (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
+                    )
+                    * self.motor.nozzle_exit_area
+                )
+
+                chamber_pressure_list.append(current_chamber_pressure)
+
+            return chamber_pressure_list
+
+        return None
+
+    def evaluate_max_list(self, list):
+        max_index = np.argmax(list)
+        max_value = list[max_index]
+        return max_value, max_index
+
+    def raw_simulation_data_export(self):
 
         with open("data/burn_simulation/burn_data.csv", "w", newline="") as burn_data:
             solution_writer = csv.writer(burn_data)
@@ -145,83 +242,13 @@ class Burn:
                     ]
                 )
 
-    def evaluate_exit_mach(self):
-        _, _, _, k, _ = self.parameters
-        func = (
-            lambda mach_number: math.pow((k + 1) / 2, -(k + 1) / (2 * (k - 1)))
-            * math.pow((1 + (k - 1) / 2 * mach_number**2), (k + 1) / (2 * (k - 1)))
-            / mach_number
-            - self.motor.expansion_ratio
-        )
-        self.exit_mach = fsolve(func, 2)[0]
-        return self.exit_mach
-
-    def evaluate_exit_pressure(self, chamber_pressure):
-        _, _, _, k, _ = self.parameters
-        self.exit_pressure = chamber_pressure * math.pow(
-            (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
-        )
-        return self.exit_pressure
-
-    def evaluate_exit_velocity(self):
-        T_0, R, _, k, _ = self.parameters
-        self.exit_velocity = self.evaluate_exit_mach() * math.sqrt(k * R * T_0)
-        return self.exit_velocity
-
-    def evaluate_Cf(self):
-        _, _, _, k, _ = self.parameters
-        self.Cf = math.sqrt(
-            (2 * k / (k - 1))
-            * math.pow(2 / (k + 1), (k + 1) / (k - 1))
-            * (1 - math.pow(self.exit_pressure / self.chamber_pressure, (k - 1) / k))
-        )
-        return self.Cf
-
-    def evaluate_thrust(self, chamber_pressure):
-        self.thrust = (
-            self.evaluate_nozzle_mass_flow(chamber_pressure)
-            * self.evaluate_exit_velocity()
-            + (self.evaluate_exit_pressure(chamber_pressure) - self.initial_pressure)
-            * self.motor.nozzle_exit_area
-        )
-        return self.thrust
-
-    def evaluate_thrust2(self):
-        self.evaluate_Cf()
-        self.thrust = self.Cf * self.chamber_pressure * self.motor.nozzle_throat_area
-        return self.thrust
-
-    def empirical_evaluate_chamber_pressure(self):
-
-        exit_velocity = self.evaluate_exit_velocity()
-
-        chamber_pressure_list = []
-
-        if self.empirical_thrust is not None:
-            for thrust in self.empirical_thrust:
-                func = lambda chamber_pressure: (
-                    thrust
-                    - self.evaluate_nozzle_mass_flow(chamber_pressure) * exit_velocity
-                    + self.motor.nozzle_exit_area
-                    * (
-                        self.evaluate_exit_pressure(chamber_pressure)
-                        - self.initial_pressure
-                    )
-                )
-
-                current_chamber_pressure = fsolve(func, 22 * 10e5)[0]
-                chamber_pressure_list.append(current_chamber_pressure)
-
-            return chamber_pressure_list
-
-        return None
-
-    def evaluate_max_list(self, list):
-        max_index = np.argmax(list)
-        max_value = list[max_index]
-        return max_value, max_index
+            return None
 
     def post_processing(self):
+
+        self.simulation_data = np.loadtxt(
+            "data/burn_simulation/burn_data.csv", delimiter=",", unpack=True, skiprows=1
+        )
         (
             time,
             thrust,
@@ -230,19 +257,47 @@ class Burn:
             exit_velocity,
             free_volume,
             regressed_length,
-        ) = np.loadtxt(
-            "data/burn_simulation/burn_data.csv", delimiter=",", unpack=True, skiprows=1
+        ) = self.simulation_data
+
+        def evaluate_max_variables_list():
+            max_variable_list = []
+            for data_variables in self.simulation_data[1:]:
+                max_variable_list.append(self.evaluate_max_list(data_variables))
+            max_variable_list.append(self.evaluate_max_list(self.empirical_thrust))
+            max_variable_list.append(
+                self.evaluate_max_list(self.empirical_chamber_pressure)
+            )
+            return max_variable_list
+
+        (
+            self.max_thrust,
+            self.max_chamber_pressure,
+            self.max_exit_pressure,
+            self.max_exit_velocity,
+            self.end_free_volume,
+            self.end_regressed_length,
+            self.max_empirical_thrust,
+            self.max_empirical_chamber_pressure,
+        ) = evaluate_max_variables_list()
+
+        self.specific_impulse = self.evaluate_specific_impulse(chamber_pressure, thrust)
+        self.empirical_specific_impulse = self.evaluate_specific_impulse(
+            self.empirical_chamber_pressure, self.empirical_thrust
         )
 
-        self.max_thrust = self.evaluate_max_list(thrust)
-        self.max_chamber_pressure = self.evaluate_max_list(chamber_pressure)
-        self.max_exit_pressure = self.evaluate_max_list(exit_pressure)
-        self.max_empirical_thrust = self.evaluate_max_list(self.empirical_thrust)
-        self.max_empirical_chamber_pressure = self.evaluate_max_list(
-            self.empirical_chamber_pressure
-        )
-        self.end_free_volume = free_volume[-1]
-        self.end_regressed_length = regressed_length[-1]
+        return None
+
+    def plotting(self):
+
+        (
+            time,
+            thrust,
+            chamber_pressure,
+            exit_pressure,
+            exit_velocity,
+            free_volume,
+            regressed_length,
+        ) = self.simulation_data
 
         figure(1, figsize=(16, 9))
         xlabel("t")
@@ -296,7 +351,7 @@ class Burn:
         )
         legend(prop=FontProperties(size=16))
         title("Empirical Thrust as function of time")
-        savefig("data/burn_simulation/graphs/empirical_thrust_pressure.png", dpi=200)
+        savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
 
         figure(7, figsize=(16, 9))
         xlabel("t")
@@ -315,7 +370,6 @@ class Burn:
         return None
 
     def info():
-
         return None
 
     def all_info():
@@ -336,11 +390,12 @@ KNSB = Propellant(
     density=1700,
     products_molecular_mass=39.9e-3,
     combustion_temperature=1600,
-    interpolation_list="data/burnrate/KNSB.csv",
+    burn_rate_a=5.8,
+    burn_rate_n=0.22
+    #interpolation_list="data/burnrate/KNSB2.csv",
 )
 
 """Static-fire data"""
-# static fire data needs pre formatting
 data_path = "data/static_fires/EmpuxoLeviata.csv"
 ext_data = np.loadtxt(
     data_path,
@@ -352,6 +407,10 @@ ext_data = np.loadtxt(
 Simulacao = Burn(Leviata, KNSB, 101325, ext_data)
 
 Simulacao.post_processing()
+Simulacao.plotting()
 
 print(Simulacao.max_thrust)
 print(Simulacao.max_empirical_thrust)
+print(Simulacao.exit_velocity)
+print(Simulacao.specific_impulse)
+print(Simulacao.empirical_specific_impulse)
