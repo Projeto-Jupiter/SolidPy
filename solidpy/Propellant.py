@@ -14,9 +14,9 @@ class Propellant:
     def __init__(
         self,
         specific_heat_ratio,
-        density,
         products_molecular_mass,
         combustion_temperature,
+        density = None,
         **kwargs
     ):
         self.specific_heat_ratio = specific_heat_ratio
@@ -43,7 +43,7 @@ class Propellant:
                     burn_rate_list.append(float(line[1]))
                     pressure_list.append(float(line[0]))
             r_function = interpolate.interp1d(
-                pressure_list, burn_rate_list, kind="linear"
+                pressure_list, burn_rate_list, kind="cubic"
             )
             if chamber_pressure < 0:
                 return 0
