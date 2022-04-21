@@ -5,13 +5,14 @@ _copyright_ = ""
 _license_ = ""
 
 import csv
-import numpy as np
 import math
+
+import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import fsolve
 import scipy.constants as const
-from scipy.integrate import solve_ivp
-from scipy.integrate import cumtrapz
+
+from scipy.optimize import fsolve
+from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
 from pylab import figure, plot, xlabel, grid, legend, title, savefig, show
 
@@ -20,25 +21,27 @@ from Motor import Motor
 from Propellant import Propellant
 
 
-
 class Burn:
-    def __init__(self, grain, motor, propellant, initial_pressure=101325, empirical_data=None):
+    def __init__(
+        self, grain, motor, propellant, initial_pressure=101325, empirical_data=None
+    ):
         self.motor = motor
         self.grain = grain
         self.propellant = propellant
         self.initial_pressure = initial_pressure
         self.burn_area = self.motor.total_burn_area  # needs fixing
-        self.set_parameters()
         self.time_span = 0.0, 2.5
         self.number_steps = 1000
+
+        self.set_parameters()
         self.solve_burn()
         self.solve_tail_off_regime()
         self.raw_simulation_data_export()
-        self.gravity = 9.81
 
         """Empirical known results (e.g. static-fire)"""
         self.empirical_time_steps, self.empirical_thrust = empirical_data
-        self.empirical_chamber_pressure = self.empirical_evaluate_chamber_pressure()
+        self.empirical_chamber_pressure = self.evaluate_empirical_chamber_pressure()
+        self.empirical_burn_rate = self.evaluate_empirical_burn_rate()
 
     def set_parameters(self):
         self.parameters = (
@@ -48,7 +51,7 @@ class Burn:
             self.propellant.specific_heat_ratio,  # k
             self.motor.nozzle_throat_area,  # A_t
         )
-    
+
     def evaluate_propellant_density(self):
         if self.grain.density is not None:
             return self.grain.density
@@ -64,7 +67,7 @@ class Burn:
         )
 
     def vector_field(self, time, state_variables):
-        
+
         chamber_pressure, free_volume, regressed_length = state_variables
         T_0, R, rho_g, _, _ = self.parameters
 
@@ -218,10 +221,24 @@ class Burn:
             self.specific_impulse_list.append(
                 thrust / (self.evaluate_nozzle_mass_flow(chamber_pressure))
             )
-        specific_impulse = np.average(self.specific_impulse_list) / self.gravity
+        specific_impulse = np.average(self.specific_impulse_list) / const.g
         return specific_impulse
 
-    def empirical_evaluate_chamber_pressure(self):
+    def evaluate_burn_rate(
+        self, chamber_pressure, chamber_pressure_derivative, free_volume, burn_area
+    ):
+        T_0, R, rho_g, _, _ = self.parameters
+
+        rho_0 = chamber_pressure / (R * T_0)  # product_gas_density
+        nozzle_mass_flow = self.evaluate_nozzle_mass_flow(chamber_pressure)
+
+        burn_rate = (
+            free_volume / (R * T_0) * chamber_pressure_derivative + nozzle_mass_flow
+        ) / (burn_area * (rho_g - rho_0))
+
+        return burn_rate
+
+    def evaluate_empirical_chamber_pressure(self):
         T_0, R, _, k, A_t = self.parameters
         chamber_pressure_list = []
 
@@ -243,6 +260,52 @@ class Burn:
                 chamber_pressure_list.append(current_chamber_pressure)
 
             return chamber_pressure_list
+
+        return None
+
+    def evaluate_empirical_burn_rate(self):
+
+        if self.empirical_chamber_pressure is not None:
+            burn_rate_list = []
+
+            # Initial conditions
+            free_volume = self.motor.free_volume
+            regressed_length = 0.0
+            burn_area = (
+                self.motor.grain_number
+                * self.motor.grain.evaluate_tubular_burn_area(regressed_length)
+            )
+
+            # Loop interation - calculate burn_rate at each step
+            for pressure_list_index, chamber_pressure in enumerate(
+                self.empirical_chamber_pressure[:-1]
+            ):
+                delta_time = (
+                    self.empirical_time_steps[pressure_list_index + 1]
+                    - self.empirical_time_steps[pressure_list_index]
+                )
+                delta_pressure = (
+                    self.empirical_chamber_pressure[pressure_list_index + 1]
+                    - self.empirical_chamber_pressure[pressure_list_index]
+                )
+                chamber_pressure_derivative = delta_pressure / delta_time
+
+                burn_rate = self.evaluate_burn_rate(
+                    chamber_pressure,
+                    chamber_pressure_derivative,
+                    free_volume,
+                    burn_area,
+                )
+
+                burn_rate_list.append(burn_rate)
+                regressed_length += burn_rate * delta_time
+                burn_area = (
+                    self.motor.grain_number
+                    * self.motor.grain.evaluate_tubular_burn_area(regressed_length)
+                )
+                free_volume += burn_area * regressed_length
+
+            return burn_rate_list
 
         return None
 
@@ -314,9 +377,13 @@ class Burn:
             max_variable_list = []
             for data_variables in self.simulation_data[1:]:
                 max_variable_list.append(self.evaluate_max_list(data_variables, time))
-            max_variable_list.append(self.evaluate_max_list(self.empirical_thrust, self.empirical_time_steps))
             max_variable_list.append(
-                self.evaluate_max_list(self.empirical_chamber_pressure, self.empirical_time_steps)
+                self.evaluate_max_list(self.empirical_thrust, self.empirical_time_steps)
+            )
+            max_variable_list.append(
+                self.evaluate_max_list(
+                    self.empirical_chamber_pressure, self.empirical_time_steps
+                )
             )
             return max_variable_list
 
@@ -336,8 +403,13 @@ class Burn:
             self.empirical_chamber_pressure, self.empirical_thrust
         )
 
-        isp1 = cumtrapz(thrust, time)[-1] / (0.65 * 4 * 9.8)
-        isp2 = cumtrapz(self.empirical_thrust, self.empirical_time_steps)[-1] / (0.65 * 4 * 9.8)
+        # specific impulse with cumtrapz
+        isp1 = cumtrapz(thrust, time)[-1] / (
+            self.grain.mass * self.motor.grain_number * const.g
+        )
+        isp2 = cumtrapz(self.empirical_thrust, self.empirical_time_steps)[-1] / (
+            self.grain.mass * self.motor.grain_number * const.g
+        )
         print(isp1, isp2)
 
         return None
@@ -454,6 +526,22 @@ class Burn:
         title("Total Burn Chamber Pressure as function of time")
         savefig("data/burn_simulation/graphs/total_burn_chamber_pressure.png", dpi=200)
 
+        figure(10, figsize=(16, 9))
+        xlabel("t")
+        grid(True)
+        plot(
+            self.empirical_time_steps[:-1],
+            self.empirical_burn_rate,
+            "g",
+            linewidth=0.75,
+            label=r"$r^{emp}$",
+        )
+        plt.xlim([0, 2.5])
+        plt.ylim([0, 1e-2])
+        legend(prop=FontProperties(size=16))
+        title("Empirical Burn Rate as function of time")
+        savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
+
         return None
 
     def info():
@@ -464,7 +552,9 @@ class Burn:
 
 
 """Rocket definitions"""
-Grao_Leviata = Grain(outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000, mass = 650 / 1000)
+Grao_Leviata = Grain(
+    outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000, mass=650 / 1000
+)
 Leviata = Motor(
     Grao_Leviata,
     grain_number=4,
@@ -484,12 +574,12 @@ KNSB = Propellant(
 )
 
 """Static-fire data"""
-data_path = "data/static_fires/leviata_raw_data-1.csv"
+data_path = "data/static_fires/EmpuxoLeviata.csv"
 ext_data = np.loadtxt(
     data_path,
-    delimiter=";",
+    delimiter=",",
     unpack=True,
-    skiprows=0,
+    skiprows=1,
 )
 
 Simulacao = Burn(Grao_Leviata, Leviata, KNSB, 101325, ext_data)
@@ -499,5 +589,13 @@ Simulacao.plotting()
 
 print("Grain density: ", Simulacao.evaluate_propellant_density())
 print("Max Thrust: ", Simulacao.max_thrust, Simulacao.max_empirical_thrust)
-print("Max Chamber pressure: ", Simulacao.max_chamber_pressure, Simulacao.max_empirical_chamber_pressure)
-print("Specific impulse: ", Simulacao.specific_impulse,Simulacao.empirical_specific_impulse)
+print(
+    "Max Chamber pressure: ",
+    Simulacao.max_chamber_pressure,
+    Simulacao.max_empirical_chamber_pressure,
+)
+print(
+    "Specific impulse: ",
+    Simulacao.specific_impulse,
+    Simulacao.empirical_specific_impulse,
+)
