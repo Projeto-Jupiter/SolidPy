@@ -1,41 +1,32 @@
-# -*- coding: utf-8 -*-
-
-_author_ = "Caio Eduardo dos Santos de Souza, Luís Felipe Biancardi Palharini, Matheus Larrondo Portiolli, Pedro Henrique Marinho Bressan"
-_copyright_ = "x"
-_license_ = "x"
-
 import csv
 import numpy as np
 from scipy import interpolate
 from scipy.integrate import solve_ivp
 
+from Environment import Environment
 
-class Outside:
+
+class RailMovement:
     def __init__(
         self,
-        atmospheric_pressure,
+        environment,
         rocket_mass,
         rocket_radius,
         aerodynamic_drag_coefficient,
-        air_density,
         rail_length,
         rail_angle,
-        frontal_area,
         thrust,
-        gravity=9.8,
+        frontal_area,
     ):
+        self.environment = environment
 
-        # Constant parameters
-        self.atmospheric_pressure = atmospheric_pressure
-        self.gravity = gravity
         self.rocket_mass = rocket_mass
         self.rocket_radius = rocket_radius
-        self.frontal_area = None
+        self.evaluate_frontal_area(frontal_area)
         self.aerodynamic_drag_coefficient = aerodynamic_drag_coefficient
-        self.air_density = air_density
+
         self.rail_length = rail_length
         self.rail_angle = rail_angle  # wrt. horizontal
-        self.evaluate_frontal_area(frontal_area)
 
         # Thrust vector temporary state
         # pending future "Burn" class
@@ -106,6 +97,8 @@ class Outside:
     def set_time_steps(self):
         time_method = self.time_method
         time_span = self.time_span
+
+        # ought to find a more ellegant way
         if time_method == "M":
             return ext_time_list
         elif time_method[:2] == "ES":
@@ -121,11 +114,11 @@ class Outside:
 
         """Parameters"""
         parameters = [
-            self.gravity,
+            self.environment.gravity,
             self.rocket_mass,
             self.frontal_area,
             self.aerodynamic_drag_coefficient,
-            self.air_density,
+            self.environment.air_density,
             self.rail_angle,
             self.thrust,
         ]
@@ -184,5 +177,7 @@ ext_time_list, ext_thrust = np.loadtxt(
 
 thrust = interpolate.interp1d(ext_time_list, ext_thrust)
 
-Keron_test = Outside(10e5, 10, 21.4e-3, 0.5, 1.25, 4, np.pi / 2, None, thrust)
+Pirassununga = Environment(101325, 1.25, -0.38390456)
+Keron_test = RailMovement(Pirassununga, 10, 21.4e-3, 0.5, 4, np.pi / 2, thrust, None)
+
 print(Keron_test.end_rail_velocity)
