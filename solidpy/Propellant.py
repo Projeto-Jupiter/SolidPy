@@ -56,7 +56,8 @@ class Propellant:
 
         else:
             raise TypeError(
-                "Missing arguments. You must pass either an `interpolation_list` path or scalar ballistic coefficients `burn_rate_a` and `burn_rate_n` arguments to Propellant class"
+                "Missing arguments. You must pass either an `interpolation_list` path or scalar ballistic "
+                "coefficients `burn_rate_a` and `burn_rate_n` arguments to Propellant class "
             )
 
     def calc_cstar(self):

@@ -31,15 +31,15 @@ class TestBurn:
 
     def test_thrust_range(self):
         for thr in self.thrust:
-            assert thr > -9.81 * 12 and thr < 1400
+            assert -9.81 * 12 < thr < 1400
 
     def test_chamber_pressure_range(self):
         for press in self.chamber_pressure:
-            assert press > 0 and press < 40e5
+            assert 0 < press < 40e5
 
     def test_exit_pressure_range(self):
         for chamber_press, exit_press in zip(self.chamber_pressure, self.exit_pressure):
-            assert exit_press > 0 and exit_press < chamber_press
+            assert 0 < exit_press < chamber_press
 
     def test_exit_velocity_range(self):
         for exit_vel in self.exit_velocity:
@@ -47,10 +47,7 @@ class TestBurn:
 
     def test_free_volume(self):
         for free_vol in self.free_volume:
-            assert (
-                free_vol > 0
-                and free_vol < Leviata.chamber_volume
-            )
+            assert 0 < free_vol < Leviata.chamber_volume
 
     def test_regressed_length(self):
         for regressed_len in self.regressed_length:
@@ -64,10 +61,9 @@ class TestBurn:
     """Test burn methods"""
     
     def test_nozzle_mass_flow(self):
-        simulation_burn = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
         assert simulation_burn.evaluate_nozzle_mass_flow(0) == 0.0
 
-    
+
 """Rocket definitions"""
 
 Grao_Leviata = Grain(
@@ -93,6 +89,8 @@ KNSB = Propellant(
 )
 
 Ambient = Environment(101325, 1.25, -0.38390456)
+
+simulation_burn = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
 
 """Static-fire data"""
 data_path = "data/static_fires/leviata_raw_data-1.csv"

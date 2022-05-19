@@ -63,7 +63,7 @@ class RailMovement:
 
         vector_state = [
             velocity,
-            (thrust(time) - k_drag * velocity**2) / (rocket_mass)
+            (thrust(time) - k_drag * velocity**2) / rocket_mass
             - gravity * np.sin(rail_angle),
         ]
 
@@ -98,7 +98,7 @@ class RailMovement:
         time_method = self.time_method
         time_span = self.time_span
 
-        # ought to find a more ellegant way
+        # ought to find a more elegant way
         if time_method == "M":
             return ext_time_list
         elif time_method[:2] == "ES":

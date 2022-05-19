@@ -115,6 +115,10 @@ class Burn:
         )
         return self.thrust
 
+    def evaluate_total_impulse(self, thrust_list, time_list):
+        total_impulse = cumtrapz(thrust_list, time_list)[-1]
+        return total_impulse
+
     # needs throughout revision, maybe better approach is integration scipy_cumtrapz
     def evaluate_specific_impulse(self, chamber_pressure_list, thrust_list):
         self.specific_impulse_list = []
@@ -126,7 +130,7 @@ class Burn:
         return specific_impulse
 
     def evaluate_specific_impulse2(self, thrust_list, time_list):
-        specific_impulse = cumtrapz(thrust_list, time_list)[-1] / (
+        specific_impulse = self.evaluate_total_impulse(thrust_list, time_list) / (
             self.grain.mass * self.motor.grain_number * self.gravity
         )
         return specific_impulse
@@ -267,7 +271,7 @@ class BurnEmpirical(Burn):
         T_0, R, _, k, A_t = self.parameters
         chamber_pressure_list = []
 
-        if self.empirical_thrust is not None:
+        try:
             for thrust in self.empirical_thrust:
                 current_chamber_pressure = (
                     thrust + self.motor.nozzle_exit_area * self.environment_pressure
@@ -286,13 +290,14 @@ class BurnEmpirical(Burn):
 
             return chamber_pressure_list
 
-        return None
+        except AttributeError:
+            return None
 
     def evaluate_empirical_burn_rate(self):
 
         self.empirical_chamber_pressure = self.evaluate_empirical_chamber_pressure()
 
-        if self.empirical_chamber_pressure is not None:
+        try:
             burn_rate_list = []
 
             # Initial conditions
@@ -334,7 +339,8 @@ class BurnEmpirical(Burn):
 
             return burn_rate_list
 
-        return None
+        except AttributeError:
+            return None
 
 
 class BurnExport:
@@ -362,7 +368,8 @@ class BurnExport:
             )
         return None, None, None, None
 
-    def evaluate_max_list(self, list, time_list):
+    @staticmethod
+    def evaluate_max_list(list, time_list):
         max_index = np.argmax(list)
         max_value = list[max_index]
         time_of_max = time_list[max_index]
@@ -428,7 +435,7 @@ class BurnExport:
             for data_variables in self.simulation_data[1:]:
                 max_variable_list.append(self.evaluate_max_list(data_variables, time))
 
-            if self.BurnEmpirical:
+            try:
                 max_variable_list += [
                     self.evaluate_max_list(
                         self.BurnEmpirical.empirical_thrust,
@@ -439,7 +446,7 @@ class BurnExport:
                         self.BurnEmpirical.empirical_time_steps,
                     ),
                 ]
-            else:
+            except AttributeError:
                 max_variable_list += [None, None]
 
             return max_variable_list
@@ -455,17 +462,26 @@ class BurnExport:
             self.max_empirical_chamber_pressure,
         ) = evaluate_max_variables_list()
 
+        self.total_impulse = self.BurnSimulation.evaluate_total_impulse(
+            thrust, time
+        )
+         
         self.specific_impulse = self.BurnSimulation.evaluate_specific_impulse2(
             thrust, time
         )
-        self.empirical_specific_impulse = (
-            self.BurnSimulation.evaluate_specific_impulse2(
+        
+        try:
+            self.empirical_total_impulse = self.BurnSimulation.evaluate_total_impulse(
+            self.BurnEmpirical.empirical_thrust,
+            self.BurnEmpirical.empirical_time_steps,
+        )
+            self.empirical_specific_impulse = self.BurnSimulation.evaluate_specific_impulse2(
                 self.BurnEmpirical.empirical_thrust,
                 self.BurnEmpirical.empirical_time_steps,
-            )
-            if self.BurnEmpirical
-            else None
         )
+
+        except AttributeError:
+            self.empirical_total_impulse, self.empirical_specific_impulse = None, None
 
         return None
 
@@ -553,7 +569,7 @@ class BurnExport:
         title("Total Burn Chamber Pressure as function of time")
         savefig("data/burn_simulation/graphs/total_burn_chamber_pressure.png", dpi=200)
 
-        if self.BurnEmpirical:
+        try:
             figure(6, figsize=(16, 9))
             xlabel("t")
             grid(True)
@@ -584,22 +600,23 @@ class BurnExport:
                 "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
             )
 
-            # figure(10, figsize=(16, 9))
-            # xlabel("t")
-            # grid(True)
-            # plot(
-            #     self.BurnEmpirical.empirical_time_steps[:-1],
-            #     self.empirical_burn_rate,
-            #     "g",
-            #     linewidth=0.75,
-            #     label=r"$r^{emp}$",
-            # )
-            # plt.xlim([0, 2.5])
-            # plt.ylim([0, 1e-2])
-            # legend(prop=FontProperties(size=16))
-            # title("Empirical Burn Rate as function of time")
-            # savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
+            figure(10, figsize=(16, 9))
+            xlabel("t")
+            grid(True)
+            plot(
+                self.BurnEmpirical.empirical_time_steps[:-1],
+                self.empirical_burn_rate,
+                "g",
+                linewidth=0.75,
+                label=r"$r^{emp}$",
+            )
+            legend(prop=FontProperties(size=16))
+            title("Empirical Burn Rate as function of time")
+            savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
 
+        except AttributeError:
+            print(">>> Empirical data not found, empirical plots were not updated.\n")
+        
         return None
 
 
@@ -616,7 +633,6 @@ Leviata = Motor(
     nozzle_exit_radius=44.44 / 2000,
     chamber_length=600 / 1000,
 )
-
 KNSB = Propellant(
     specific_heat_ratio=1.1361,
     density=1700,
@@ -626,12 +642,11 @@ KNSB = Propellant(
     # burn_rate_n=0.22,
     interpolation_list="data/burnrate/KNSB3.csv",
 )
-
 Ambient = Environment(101325, 1.25, -0.38390456)
 
 """Static-fire data"""
 
-data_path = "data/static_fires/leviata_raw_data-1.csv"
+data_path = "data/static_fires/leviata_final_curve.csv"
 ext_data = np.loadtxt(
     data_path,
     delimiter=",",
@@ -644,7 +659,7 @@ ext_data = np.loadtxt(
 
 Simulation = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
 Empirical_Simulation = None
-# Empirical_Simulation = BurnEmpirical(Grao_Leviata, Leviata, KNSB, Ambient, ext_data)
+#Empirical_Simulation = BurnEmpirical(Grao_Leviata, Leviata, KNSB, Ambient, ext_data)
 ExportPlot = BurnExport(Simulation, Empirical_Simulation)
 
 """Desired outputs"""
@@ -659,6 +674,11 @@ print(
     "Max Chamber pressure: ",
     ExportPlot.max_chamber_pressure,
     ExportPlot.max_empirical_chamber_pressure,
+)
+print(
+    "Total impulse: ",
+    ExportPlot.total_impulse,
+    ExportPlot.empirical_total_impulse
 )
 print(
     "Specific impulse: ",
