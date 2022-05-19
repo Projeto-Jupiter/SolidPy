@@ -13,23 +13,32 @@ class Grain:
         outer_radius,
         initial_inner_radius,
         initial_height=None,
+        mass=None,
         geometry="tubular",
     ):
 
         self.outer_radius = outer_radius
         self.initial_inner_radius = initial_inner_radius
         self.inner_radius = initial_inner_radius
+        self.mass = mass
         self.evaluate_grain_initial_height(initial_height)
         self.height = self.initial_height
         self.geometry = geometry
         self.evaluate_grain_geometry()
         self.evaluate_grain_volume()
+        self.density = self.evaluate_grain_density()
 
     def evaluate_grain_initial_height(self, initial_height):
         if initial_height is None:
             self.initial_height = 3 * self.outer_radius + self.inner_radius
         else:
             self.initial_height = initial_height
+
+    def evaluate_grain_density(self):
+        if self.mass is not None:
+            density = self.mass / self.volume
+            return density
+        return None
 
     def evaluate_grain_geometry(self):
         if self.geometry == "tubular":
@@ -57,3 +66,4 @@ class Grain:
 
 # Grao_Leviata = Grain(outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000)
 # print(Grao_Leviata.burn_area)
+# print(Grao_Leviata.volume)
