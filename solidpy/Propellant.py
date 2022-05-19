@@ -16,7 +16,7 @@ class Propellant:
         specific_heat_ratio,
         products_molecular_mass,
         combustion_temperature,
-        density = None,
+        density=None,
         **kwargs
     ):
         self.specific_heat_ratio = specific_heat_ratio

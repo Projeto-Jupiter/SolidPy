@@ -462,23 +462,23 @@ class BurnExport:
             self.max_empirical_chamber_pressure,
         ) = evaluate_max_variables_list()
 
-        self.total_impulse = self.BurnSimulation.evaluate_total_impulse(
-            thrust, time
-        )
-         
+        self.total_impulse = self.BurnSimulation.evaluate_total_impulse(thrust, time)
+
         self.specific_impulse = self.BurnSimulation.evaluate_specific_impulse2(
             thrust, time
         )
-        
+
         try:
             self.empirical_total_impulse = self.BurnSimulation.evaluate_total_impulse(
-            self.BurnEmpirical.empirical_thrust,
-            self.BurnEmpirical.empirical_time_steps,
-        )
-            self.empirical_specific_impulse = self.BurnSimulation.evaluate_specific_impulse2(
                 self.BurnEmpirical.empirical_thrust,
                 self.BurnEmpirical.empirical_time_steps,
-        )
+            )
+            self.empirical_specific_impulse = (
+                self.BurnSimulation.evaluate_specific_impulse2(
+                    self.BurnEmpirical.empirical_thrust,
+                    self.BurnEmpirical.empirical_time_steps,
+                )
+            )
 
         except AttributeError:
             self.empirical_total_impulse, self.empirical_specific_impulse = None, None
@@ -616,7 +616,7 @@ class BurnExport:
 
         except AttributeError:
             print(">>> Empirical data not found, empirical plots were not updated.\n")
-        
+
         return None
 
 
@@ -659,7 +659,7 @@ ext_data = np.loadtxt(
 
 Simulation = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
 Empirical_Simulation = None
-#Empirical_Simulation = BurnEmpirical(Grao_Leviata, Leviata, KNSB, Ambient, ext_data)
+# Empirical_Simulation = BurnEmpirical(Grao_Leviata, Leviata, KNSB, Ambient, ext_data)
 ExportPlot = BurnExport(Simulation, Empirical_Simulation)
 
 """Desired outputs"""
@@ -675,11 +675,7 @@ print(
     ExportPlot.max_chamber_pressure,
     ExportPlot.max_empirical_chamber_pressure,
 )
-print(
-    "Total impulse: ",
-    ExportPlot.total_impulse,
-    ExportPlot.empirical_total_impulse
-)
+print("Total impulse: ", ExportPlot.total_impulse, ExportPlot.empirical_total_impulse)
 print(
     "Specific impulse: ",
     ExportPlot.specific_impulse,

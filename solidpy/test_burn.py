@@ -25,6 +25,7 @@ class TestBurn:
     ) = simulation_data
 
     """Test output simulation range and lenght"""
+
     def time_range(self):
         for time_steps in self.time:
             assert time_steps >= 0
@@ -51,7 +52,10 @@ class TestBurn:
 
     def test_regressed_length(self):
         for regressed_len in self.regressed_length:
-            assert regressed_len < Grao_Leviata.outer_radius - Grao_Leviata.initial_inner_radius
+            assert (
+                regressed_len
+                < Grao_Leviata.outer_radius - Grao_Leviata.initial_inner_radius
+            )
 
     def test_output_list_size(self):
         lenght = len(self.time)
@@ -59,7 +63,7 @@ class TestBurn:
             assert len(out_list) == lenght
 
     """Test burn methods"""
-    
+
     def test_nozzle_mass_flow(self):
         assert simulation_burn.evaluate_nozzle_mass_flow(0) == 0.0
 
@@ -100,6 +104,3 @@ ext_data = np.loadtxt(
     unpack=True,
     skiprows=1,
 )
-
-
-

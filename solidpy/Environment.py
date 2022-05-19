@@ -2,6 +2,7 @@
 
 import math
 
+
 class Environment:
     def __init__(self, atmospheric_pressure, air_density, latitude=0, gravity=None):
         self.atmospheric_pressure = atmospheric_pressure
