@@ -8,16 +8,15 @@ import csv
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from scipy.optimize import fsolve
 import scipy.constants as const
-
-from Grain import Grain
-from Motor import Motor
-from Propellant import Propellant
+from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp
 from matplotlib.font_manager import FontProperties
 from pylab import figure, plot, xlabel, grid, legend, title, savefig, show
 
+from .Grain import Grain
+from .Motor import Motor
+from .Propellant import Propellant
 
 class Burn:
     def __init__(self, motor, propellant, initial_pressure=101325, empirical_data=None):
@@ -27,13 +26,13 @@ class Burn:
         self.burn_area = self.motor.total_burn_area  # needs fixing
         self.set_parameters()
         self.time_span = 0.0, 2.5
+        self.n_Cf = 0.9
         self.solve_burn()
         self.raw_simulation_data_export()
         self.gravity = 9.81
-
         """Empirical known results (e.g. static-fire)"""
-        self.empirical_time_steps, self.empirical_thrust = empirical_data
-        self.empirical_chamber_pressure = self.empirical_evaluate_chamber_pressure()
+        #self.empirical_time_steps, self.empirical_thrust = empirical_data
+        #self.empirical_chamber_pressure = self.empirical_evaluate_chamber_pressure()
 
     def set_parameters(self):
         self.parameters = (
@@ -158,7 +157,7 @@ class Burn:
 
     def evaluate_thrust2(self):
         self.evaluate_Cf()
-        self.thrust = self.Cf * self.chamber_pressure * self.motor.nozzle_throat_area
+        self.thrust = self.n_Cf * self.Cf * self.chamber_pressure * self.motor.nozzle_throat_area
         return self.thrust
 
     def evaluate_specific_impulse(self, chamber_pressure_list, thrust_list):
@@ -229,7 +228,7 @@ class Burn:
             ):
                 self.evaluate_exit_pressure(self.chamber_pressure)
                 self.evaluate_exit_velocity()
-                self.evaluate_thrust(self.chamber_pressure)
+                self.evaluate_thrust2()
                 solution_writer.writerow(
                     [
                         self.time,
@@ -263,10 +262,10 @@ class Burn:
             max_variable_list = []
             for data_variables in self.simulation_data[1:]:
                 max_variable_list.append(self.evaluate_max_list(data_variables))
-            max_variable_list.append(self.evaluate_max_list(self.empirical_thrust))
-            max_variable_list.append(
-                self.evaluate_max_list(self.empirical_chamber_pressure)
-            )
+            # max_variable_list.append(self.evaluate_max_list(self.empirical_thrust))
+            # max_variable_list.append(
+            #     self.evaluate_max_list(self.empirical_chamber_pressure)
+            # )
             return max_variable_list
 
         (
@@ -276,14 +275,14 @@ class Burn:
             self.max_exit_velocity,
             self.end_free_volume,
             self.end_regressed_length,
-            self.max_empirical_thrust,
-            self.max_empirical_chamber_pressure,
+            #self.max_empirical_thrust,
+            #self.max_empirical_chamber_pressure,
         ) = evaluate_max_variables_list()
 
         self.specific_impulse = self.evaluate_specific_impulse(chamber_pressure, thrust)
-        self.empirical_specific_impulse = self.evaluate_specific_impulse(
-            self.empirical_chamber_pressure, self.empirical_thrust
-        )
+        #self.empirical_specific_impulse = self.evaluate_specific_impulse(
+        #    self.empirical_chamber_pressure, self.empirical_thrust
+        #)
 
         return None
 
@@ -339,40 +338,71 @@ class Burn:
         title("Regressed Grain Length as function of time")
         savefig("data/burn_simulation/graphs/regressed_length.png", dpi=200)
 
-        figure(6, figsize=(16, 9))
-        xlabel("t")
-        grid(True)
-        plot(
-            self.empirical_time_steps,
-            self.empirical_thrust,
-            "g",
-            linewidth=0.75,
-            label=r"$F^{emp}_T$",
-        )
-        legend(prop=FontProperties(size=16))
-        title("Empirical Thrust as function of time")
-        savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
+        # figure(6, figsize=(16, 9))
+        # xlabel("t")
+        # grid(True)
+        # plot(
+        #     self.empirical_time_steps,
+        #     self.empirical_thrust,
+        #     "g",
+        #     linewidth=0.75,
+        #     label=r"$F^{emp}_T$",
+        # )
+        # legend(prop=FontProperties(size=16))
+        # title("Empirical Thrust as function of time")
+        # savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
 
-        figure(7, figsize=(16, 9))
-        xlabel("t")
-        grid(True)
-        plot(
-            self.empirical_time_steps,
-            self.empirical_chamber_pressure,
-            "g",
-            linewidth=0.75,
-            label=r"$p^{emp}_c$",
-        )
-        legend(prop=FontProperties(size=16))
-        title("Empirical Chamber Pressure as function of time")
-        savefig("data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200)
+        # figure(7, figsize=(16, 9))
+        # xlabel("t")
+        # grid(True)
+        # plot(
+        #     self.empirical_time_steps,
+        #     self.empirical_chamber_pressure,
+        #     "g",
+        #     linewidth=0.75,
+        #     label=r"$p^{emp}_c$",
+        # )
+        # legend(prop=FontProperties(size=16))
+        # title("Empirical Chamber Pressure as function of time")
+        # savefig("data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200)
 
         return None
 
-    def info():
+    def info(self):
+        (time,
+        thrust,
+        chamber_pressure,
+        exit_pressure,
+        exit_velocity,
+        free_volume,
+        regressed_length) = self.simulation_data
+ 
+        total_impulse = np.trapz(thrust,time)
+        propellant_mass = self.motor.grain_number*self.motor.grain.volume*self.propellant.density
+        specific_impulse = total_impulse/(propellant_mass*self.gravity)
+        print("Total Impulse: {:.2f} Ns".format(total_impulse))
+        print("Max Thrust: {:.2f} N".format(max(thrust)))
+        print("Mean Thrust: {:.2f} N".format(np.mean(thrust)))
+        print("Max Chamber Pressure: {:.2f} bar".format(max(chamber_pressure)/100000))
+        print("Mean Chamber Pressure: {:.2f} bar".format(np.mean(chamber_pressure)/100000))
+        print("Propellant mass: {:.2f} g".format(1000*propellant_mass))
+        print("Specific Impulse: {:.2f} s".format(specific_impulse))
+        print("Burnout Time: {:.2f} s".format(time[-1]))
+
+        plt.figure(figsize=(4,3),dpi=100)
+        plt.plot(time,thrust)
+        plt.ylabel('Thrust (N)')
+        plt.xlabel('Tempo (s)')
+        plt.show()
+        plt.figure(figsize=(4,4),dpi=100)
+        plt.plot(time,chamber_pressure/100000)
+        plt.ylabel('Chamber Pressure (bar)')
+        plt.xlabel('Tempo (s)')
+        plt.show()
+        
         return None
 
-    def all_info():
+    def all_info(self):
         return None
 
 
@@ -409,8 +439,8 @@ Simulacao = Burn(Leviata, KNSB, 101325, ext_data)
 Simulacao.post_processing()
 Simulacao.plotting()
 
-print(Simulacao.max_thrust)
-print(Simulacao.max_empirical_thrust)
-print(Simulacao.exit_velocity)
-print(Simulacao.specific_impulse)
-print(Simulacao.empirical_specific_impulse)
+# print(Simulacao.max_thrust)
+# print(Simulacao.max_empirical_thrust)
+# print(Simulacao.exit_velocity)
+# print(Simulacao.specific_impulse)
+# print(Simulacao.empirical_specific_impulse)
