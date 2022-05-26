@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 _author_ = "Caio Eduardo dos Santos de Souza, Luís Felipe Biancardi Palharini, Matheus Larrondo Portiolli, Pedro Henrique Marinho Bressan"
-_copyright_ = "x"
+_copyright_ = "MIT"
 _license_ = "x"
 
 import csv

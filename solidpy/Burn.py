@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 _author_ = ""
-_copyright_ = ""
+_copyright_ = "MIT"
 _license_ = ""
 
 import csv

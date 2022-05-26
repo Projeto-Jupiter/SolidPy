@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 _author_ = "Caio Eduardo dos Santos de Souza, João Lemes Gribel Soares, Thais Silva Melo, Tiago Mariotto Lucio"
-_copyright_ = "x"
+_copyright_ = "MIT"
 _license_ = "x"
 
 import numpy as np
