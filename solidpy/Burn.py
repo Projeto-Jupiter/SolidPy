@@ -8,6 +8,7 @@ import csv
 import math
 
 import numpy as np
+import scipy.constants as const
 
 from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
@@ -21,7 +22,7 @@ from Propellant import Propellant
 
 
 class Burn:
-    def __init__(self, grain, motor, propellant, environment):
+    def __init__(self, grain, motor, propellant, environment=Environment()):
         self.motor = motor
         self.grain = grain
         self.propellant = propellant
@@ -151,7 +152,7 @@ class Burn:
 
 
 class BurnSimulation(Burn):
-    def __init__(self, grain, motor, propellant, environment):
+    def __init__(self, grain, motor, propellant, environment=Environment()):
         Burn.__init__(self, grain, motor, propellant, environment)
 
         self.time_span = 0.0, 2.5
@@ -259,7 +260,14 @@ class BurnSimulation(Burn):
 
 
 class BurnEmpirical(Burn):
-    def __init__(self, grain, motor, propellant, environment, empirical_data=None):
+    def __init__(
+        self,
+        grain,
+        motor,
+        propellant,
+        environment=Environment(),
+        empirical_data=None,
+    ):
         Burn.__init__(self, grain, motor, propellant, environment)
 
         """Empirical known results (e.g. static-fire)"""
@@ -642,7 +650,7 @@ KNSB = Propellant(
     # burn_rate_n=0.22,
     interpolation_list="data/burnrate/KNSB3.csv",
 )
-Ambient = Environment(101325, 1.25, -0.38390456)
+# Ambient = Environment(101325, 1.25, -0.38390456)
 
 """Static-fire data"""
 
@@ -657,9 +665,11 @@ ext_data = np.loadtxt(
 
 """Class instances"""
 
-Simulation = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
+Simulation = BurnSimulation(Grao_Leviata, Leviata, KNSB)
 Empirical_Simulation = None
-# Empirical_Simulation = BurnEmpirical(Grao_Leviata, Leviata, KNSB, Ambient, ext_data)
+Empirical_Simulation = BurnEmpirical(
+    Grao_Leviata, Leviata, KNSB, empirical_data=ext_data
+)
 ExportPlot = BurnExport(Simulation, Empirical_Simulation)
 
 """Desired outputs"""

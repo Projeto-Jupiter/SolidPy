@@ -177,7 +177,7 @@ ext_time_list, ext_thrust = np.loadtxt(
 
 thrust = interpolate.interp1d(ext_time_list, ext_thrust)
 
-Pirassununga = Environment(101325, 1.25, -0.38390456)
+Pirassununga = Environment(101325, 1.25, -0.38390456, ellipsoidal_model=True)
 Keron_test = RailMovement(Pirassununga, 10, 21.4e-3, 0.5, 4, np.pi / 2, thrust, None)
 
 print(Keron_test.end_rail_velocity)
