@@ -2,19 +2,20 @@
 
 import math
 import scipy.constants as const
+from ambiance import Atmosphere
 
 
 class Environment:
     def __init__(
         self,
-        atmospheric_pressure=const.atmosphere,
-        air_density=1.225,
         latitude=0,
+        altitude=0,
         gravity=None,
         ellipsoidal_model=False,
     ):
-        self.atmospheric_pressure = atmospheric_pressure
-        self.air_density = air_density
+        atmosphere = Atmosphere(altitude)
+        self.atmospheric_pressure = atmosphere.pressure[0]
+        self.air_density = atmosphere.density[0]
         self.latitude = latitude
         self.gravity = self.evaluate_gravity(gravity, latitude, ellipsoidal_model)
 

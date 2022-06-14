@@ -1,3 +1,4 @@
 __pycache__/
 *pyc
 data/burn_simulation/
+venv/

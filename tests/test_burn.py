@@ -2,11 +2,7 @@
 
 import numpy as np
 
-from Grain import Grain
-from Motor import Motor
-from Propellant import Propellant
-from Environment import Environment
-from Burn import Burn, BurnSimulation
+from solidpy import (Grain, Propellant, Motor, Environment, Burn, BurnSimulation)
 
 
 class TestBurn:
@@ -16,12 +12,12 @@ class TestBurn:
     )
     (
         time,
-        thrust,
         chamber_pressure,
-        exit_pressure,
-        exit_velocity,
         free_volume,
         regressed_length,
+        thrust,
+        exit_pressure,
+        exit_velocity,
     ) = simulation_data
 
     """Test output simulation range and lenght"""
@@ -79,6 +75,7 @@ Leviata = Motor(
     chamber_inner_radius=77.92 / 2000,
     nozzle_throat_radius=17.5 / 2000,
     nozzle_exit_radius=44.44 / 2000,
+    nozzle_angle=15*np.pi/180,
     chamber_length=600 / 1000,
 )
 
