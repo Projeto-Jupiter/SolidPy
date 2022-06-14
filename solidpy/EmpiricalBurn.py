@@ -207,7 +207,7 @@ if __name__ == "__main__":
         chamber_inner_radius=77.92 / 2000,
         nozzle_throat_radius=17.5 / 2000,
         nozzle_exit_radius=44.44 / 2000,
-        nozzle_angle=15*np.pi/180,
+        nozzle_angle=15 * np.pi / 180,
         chamber_length=600 / 1000,
     )
     KNSB = Propellant(

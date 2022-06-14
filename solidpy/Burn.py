@@ -114,7 +114,7 @@ class Burn:
             self.evaluate_Cf(chamber_pressure)
             * chamber_pressure
             * self.motor.nozzle_throat_area
-        ) 
+        )
         return self.thrust
 
     def evaluate_total_impulse(self, thrust_list, time_list):
@@ -123,7 +123,10 @@ class Burn:
 
     def evaluate_specific_impulse(self, thrust_list, time_list):
         specific_impulse = self.evaluate_total_impulse(thrust_list, time_list) / (
-            self.propellant.density * self.grain.volume * self.motor.grain_number * self.gravity
+            self.propellant.density
+            * self.grain.volume
+            * self.motor.grain_number
+            * self.gravity
         )
         return specific_impulse
 
@@ -219,7 +222,7 @@ class BurnSimulation(Burn):
             self.initial_tail_off_time,
             self.initial_tail_off_chamber_pressure,
             self.initial_tail_off_free_volume,
-        ) = (self.solution[0][-1], self.solution[0][-1], self.solution[1][-1])
+        ) = (self.solution[0][-1], self.solution[1][-1], self.solution[2][-1])
 
         self.evaluate_tail_off_chamber_pressure = (
             lambda time: self.initial_tail_off_chamber_pressure
@@ -298,15 +301,7 @@ class BurnExport(Export):
             ],
         )
 
-        (
-            time,
-            chamber_pressure,
-            free_volume,
-            regressed_length,
-            thrust,
-            exit_pressure,
-            exit_velocity,
-        ) = self.solution
+        time, thrust = self.solution[0], self.solution[3]
 
         (
             self.max_chamber_pressure,
@@ -338,12 +333,12 @@ class BurnExport(Export):
 
         (
             time,
-            thrust,
             chamber_pressure,
-            exit_pressure,
-            exit_velocity,
             free_volume,
             regressed_length,
+            thrust,
+            exit_pressure,
+            _,
         ) = self.solution
 
         (tail_off_time, tail_off_chamber_pressure) = self.tail_off_solution
@@ -424,7 +419,8 @@ class BurnExport(Export):
 if __name__ == "__main__":
     """Burn definitions"""
     Grao_Leviata = Grain(
-        outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000,
+        outer_radius=71.92 / 2000,
+        initial_inner_radius=31.92 / 2000,
     )
     Leviata = Motor(
         Grao_Leviata,
@@ -432,7 +428,7 @@ if __name__ == "__main__":
         chamber_inner_radius=77.92 / 2000,
         nozzle_throat_radius=17.5 / 2000,
         nozzle_exit_radius=44.44 / 2000,
-        nozzle_angle=15*np.pi/180,
+        nozzle_angle=15 * np.pi / 180,
         chamber_length=600 / 1000,
     )
     KNSB = Propellant(
@@ -442,7 +438,7 @@ if __name__ == "__main__":
         combustion_temperature=1600,
         # burn_rate_a=5.13,
         # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB3.csv",
+        interpolation_list="data/burnrate/KNSB.csv",
     )
     Ambient = Environment(latitude=-0.38390456, altitude=750, ellipsoidal_model=True)
 
