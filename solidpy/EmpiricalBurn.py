@@ -4,8 +4,9 @@ _author_ = ""
 _copyright_ = ""
 _license_ = ""
 
-import numpy as np
 import math
+
+import numpy as np
 
 from matplotlib.font_manager import FontProperties
 from pylab import figure, plot, xlabel, grid, legend, title, savefig, show

@@ -5,7 +5,6 @@ _copyright_ = ""
 _license_ = ""
 
 import numpy as np
-from Grain import Grain
 
 
 class Motor:

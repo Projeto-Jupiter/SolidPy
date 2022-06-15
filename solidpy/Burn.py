@@ -4,11 +4,9 @@ _author_ = ""
 _copyright_ = ""
 _license_ = ""
 
-import csv
 import math
 
 import numpy as np
-import scipy.constants as const
 
 from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
@@ -301,7 +299,7 @@ class BurnExport(Export):
             ],
         )
 
-        time, thrust = self.solution[0], self.solution[3]
+        time, thrust = self.solution[0], self.solution[4]
 
         (
             self.max_chamber_pressure,
@@ -317,6 +315,8 @@ class BurnExport(Export):
         self.specific_impulse = self.BurnSimulation.evaluate_specific_impulse(
             thrust, time
         )
+
+        print(self.BurnSimulation.evaluate_total_impulse([self.BurnSimulation.evaluate_thrust(cp) for cp in self.tail_off_solution[1]], self.tail_off_solution[0]))
 
         return None
 
@@ -438,7 +438,7 @@ if __name__ == "__main__":
         combustion_temperature=1600,
         # burn_rate_a=5.13,
         # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB.csv",
+        interpolation_list="data/burnrate/KNSB3.csv",
     )
     Ambient = Environment(latitude=-0.38390456, altitude=750, ellipsoidal_model=True)
 
