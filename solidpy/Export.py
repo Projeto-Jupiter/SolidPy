@@ -23,20 +23,6 @@ class Export:
         for data_variables in variables:
             max_variable_list.append(Export.evaluate_max_list(data_variables, time))
 
-        # try:
-        #     max_variable_list += [
-        #         self.evaluate_max_list(
-        #             self.BurnEmpirical.empirical_thrust,
-        #             self.BurnEmpirical.empirical_time_steps,
-        #         ),
-        #         self.evaluate_max_list(
-        #             self.BurnEmpirical.empirical_chamber_pressure,
-        #             self.BurnEmpirical.empirical_time_steps,
-        #         ),
-        #     ]
-        # except AttributeError:
-        #     max_variable_list += [None, None]
-
         return max_variable_list
 
     @staticmethod

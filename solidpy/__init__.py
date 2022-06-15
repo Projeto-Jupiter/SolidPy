@@ -40,7 +40,7 @@ from .Grain import Grain
 from .Motor import Motor
 from .Propellant import Propellant
 from .Burn import Burn, BurnSimulation
-from .EmpiricalBurn import BurnEmpirical
+from .BurnEmpirical import BurnEmpirical
 from .Environment import Environment
 from .Rail import Rail
 from .Export import Export
