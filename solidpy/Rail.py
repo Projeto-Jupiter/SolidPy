@@ -9,6 +9,9 @@ import numpy as np
 from scipy import interpolate
 from scipy.integrate import solve_ivp
 
+from matplotlib.font_manager import FontProperties
+from pylab import figure, plot, xlabel, grid, legend, title, savefig, show
+
 from Environment import Environment
 from Export import Export
 
@@ -40,11 +43,9 @@ class Rail:
         # Initial differential equation conditions
         self.initial_position = 0.0
         self.initial_velocity = 0.0
-        self.time_span = 0.0, 2.5
-        # M for Manual, A for Auto, ESn for Evenly Spaced (n=number steps)
-        self.time_method = "M"
 
         # Differential equation solution
+        (self.time, self.position, self.velocity) = self.solve_rail()
         self.end_rail_velocity = self.solve_rail()[2][-1]
 
     def evaluate_frontal_area(self, frontal_area):
@@ -99,19 +100,6 @@ class Rail:
 
         return jacobian
 
-    def set_time_steps(self):
-        time_method = self.time_method
-        time_span = self.time_span
-
-        # ought to find a more elegant way
-        if time_method == "M":
-            return ext_time_list
-        elif time_method[:2] == "ES":
-            number_steps = int(time_method[2:])
-            time_steps = np.linspace(time_span[0], time_span[1], number_steps)
-            return time_steps
-        return None
-
     def solve_rail(self):
 
         """Variables"""
@@ -127,8 +115,6 @@ class Rail:
             self.rail_angle,
             self.thrust,
         ]
-        absolute_error = 1.0e-12
-        relative_error = 1.0e-8
 
         def end_rail(time, state_variables, parameters):
             position = state_variables[0]
@@ -139,35 +125,68 @@ class Rail:
         end_rail.terminal = True
 
         """Solver"""
-        # uncomment "atol" and "rtol" for manual error control
         solution = solve_ivp(
             self.vector_field,
-            self.time_span,
+            (0.0, 100.0),
             state_variables,
-            method="BDF",
-            t_eval=self.set_time_steps(),
             args=(parameters,),
+            method="BDF",
+            jac=self.evaluate_jacobian,
             events=end_rail,
-            max_step=0.005,
-            jac=self.evaluate_jacobian
-            # atol=absolute_error,
-            # rtol=relative_error,
+            max_step=0.001,
         )
 
         self.solution = [solution.t, solution.y[0], solution.y[1]]
 
-        """Export data"""
-        Export.raw_simulation_data_export(
-            self.solution,
-            "data/rail_movement/rail_data.csv",
-            ["Time", "Position", "Velocity"],
-        )
-
         return self.solution
 
 
+class RailExport(Export):
+    def __init__(self, Rail):
+        self.Rail = Rail
+        self.post_processing()
+
+    def post_processing(self):
+        Export.raw_simulation_data_export(
+            self.Rail.solution,
+            "data/rail_movement/rail_data.csv",
+            ["Time", "Position", "Velocity"],
+        )
+        return None
+
+    def all_info(self):
+        print("Out rail velocity: {:.2f} m/s".format(self.Rail.end_rail_velocity))
+        print("Mean rail velocity: {:.2f} m/s".format(np.mean(self.Rail.velocity)))
+        print("Out rail time: {:.2f} s".format(self.Rail.time[-1]))
+
+        return None
+
+    def plotting(self):
+
+        figure(1, figsize=(16, 9))
+        xlabel("t")
+        grid(True)
+        plot(
+            self.Rail.time, self.Rail.velocity, "b", linewidth=0.75, label=r"$v_{rail}$"
+        )
+        legend(prop=FontProperties(size=16))
+        title("Rail velocity as function of time")
+        savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
+
+        figure(2, figsize=(16, 9))
+        xlabel("t")
+        grid(True)
+        plot(
+            self.Rail.time, self.Rail.position, "b", linewidth=0.75, label=r"$s_{rail}$"
+        )
+        legend(prop=FontProperties(size=16))
+        title("Rail position as function of time")
+        savefig("data/rail_movement/graphs/rail_position.png", dpi=200)
+
+        return None
+
+
 if __name__ == "__main__":
-    """Simulation for testing and debugging purposes only"""
 
     data_path = "data/burn_simulation/burn_data.csv"
     ext_time_list, ext_thrust = np.loadtxt(
@@ -179,4 +198,5 @@ if __name__ == "__main__":
     Pirassununga = Environment(-0.38390456, 750, ellipsoidal_model=True)
     Keron_test = Rail(Pirassununga, 10, 100 / 2000, 0.5, 4, np.pi / 2, thrust, None)
 
-    print(Keron_test.end_rail_velocity)
+    RailExport(Keron_test).all_info()
+    RailExport(Keron_test).plotting()
