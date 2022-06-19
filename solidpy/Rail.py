@@ -195,7 +195,7 @@ if __name__ == "__main__":
 
     thrust = interpolate.interp1d(ext_time_list, ext_thrust)
 
-    Pirassununga = Environment(-0.38390456, 750, ellipsoidal_model=True)
+    Pirassununga = Environment(-0.38390456, 627, ellipsoidal_model=True)
     Keron_test = Rail(Pirassununga, 10, 100 / 2000, 0.5, 4, np.pi / 2, thrust, None)
 
     RailExport(Keron_test).all_info()

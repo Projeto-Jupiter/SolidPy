@@ -17,16 +17,33 @@ class Environment:
         self.atmospheric_pressure = atmosphere.pressure[0]
         self.air_density = atmosphere.density[0]
         self.latitude = latitude
-        self.gravity = self.evaluate_gravity(gravity, latitude, ellipsoidal_model)
+        self.gravity = self.evaluate_gravity(
+            gravity, latitude, altitude, ellipsoidal_model
+        )
 
-    def evaluate_gravity(self, gravity, latitude, ellipsoidal_model):
+    def evaluate_gravity(self, gravity, latitude, altitude, ellipsoidal_model):
         if gravity is None and ellipsoidal_model:
             # Somigliana approximation for ellipsoidal gravity
-            gravity = 9.78032533590389 * (
-                (1 + 0.001931852652458 * (math.sin(latitude)) ** 2)
-                / (math.sqrt(1 - 0.006694379990141 * (math.sin(latitude)) ** 2))
+            # Source: "National Geospatial-intelligence Agency
+            # Standardization Document" "NGA.STND.0036_1.0.0_WGS84"
+            a = 6378137.0  # semi_major_axis
+            f = 1 / 298.257223563  # flattening_factor
+            m_rot = 3.449786506841e-3  # rotation_factor
+            g_e = 9.7803253359  # normal gravity at equator
+            k_somgl = 1.931852652458e-3  # normal gravity formula const.
+            first_ecc_sqrd = 6.694379990141e-3  # square of first eccentricity
+
+            gravity_somgl = g_e * (
+                (1 + k_somgl * (math.sin(latitude)) ** 2)
+                / (math.sqrt(1 - first_ecc_sqrd * (math.sin(latitude)) ** 2))
             )
-            return gravity
+            height_correction = (
+                1
+                - 2 / a * (1 + f + m_rot - 2 * f * (math.sin(latitude)) ** 2) * altitude
+                + 3 * altitude**2 / a**2
+            )
+
+            return gravity_somgl * height_correction
         elif not ellipsoidal_model:
             return const.g
         return gravity

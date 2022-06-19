@@ -289,7 +289,10 @@ class BurnExport(Export):
             self.exit_pressure,
             self.exit_velocity,
         ) = self.BurnSimulation.solution
-        (self.tail_off_time, self.tail_off_chamber_pressure) = self.BurnSimulation.tail_off_solution
+        (
+            self.tail_off_time,
+            self.tail_off_chamber_pressure,
+        ) = self.BurnSimulation.tail_off_solution
 
         self.post_processing()
 
@@ -316,7 +319,9 @@ class BurnExport(Export):
             self.max_thrust,
             self.max_exit_pressure,
             self.max_exit_velocity,
-        ) = Export.evaluate_max_variables_list(self.BurnSimulation.solution[0], self.BurnSimulation.solution[1:])
+        ) = Export.evaluate_max_variables_list(
+            self.BurnSimulation.solution[0], self.BurnSimulation.solution[1:]
+        )
 
         self.total_impulse = self.BurnSimulation.evaluate_total_impulse(
             self.thrust, self.time
@@ -460,7 +465,7 @@ if __name__ == "__main__":
         # burn_rate_n=0.22,
         interpolation_list="data/burnrate/KNSB3.csv",
     )
-    Ambient = Environment(latitude=-0.38390456, altitude=750, ellipsoidal_model=True)
+    Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
 
     """Static-fire data"""
     data_path = "data/static_fires/leviata_final_curve.csv"
