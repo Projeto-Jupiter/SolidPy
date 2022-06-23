@@ -17,11 +17,24 @@ class Environment:
         self.atmospheric_pressure = atmosphere.pressure[0]
         self.air_density = atmosphere.density[0]
         self.latitude = latitude
+        self.standard_gravity = const.g
         self.gravity = self.evaluate_gravity(
             gravity, latitude, altitude, ellipsoidal_model
         )
 
     def evaluate_gravity(self, gravity, latitude, altitude, ellipsoidal_model):
+        """Local gravity acceleration evaluation based on given user input.
+
+        Args:
+            gravity (float): optional user input gravity value
+            latitude (float): local latitude
+            altitude (float): local altitude
+            ellipsoidal_model (bool): user input whether an ellipsoidal
+            Earth ought be simulated
+
+        Returns:
+            float: local gravity acceleration
+        """
         if gravity is None and ellipsoidal_model:
             # Somigliana approximation for ellipsoidal gravity
             # Source: "National Geospatial-intelligence Agency
@@ -45,5 +58,5 @@ class Environment:
 
             return gravity_somgl * height_correction
         elif not ellipsoidal_model:
-            return const.g
+            return self.standard_gravity
         return gravity

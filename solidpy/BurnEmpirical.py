@@ -37,11 +37,26 @@ class BurnEmpirical(Burn):
         self.empirical_burn_rate = self.evaluate_empirical_burn_rate()
 
     def evaluate_propellant_density(self):
+        """Method that overwrites propellant standard density for user
+        empirical evaluation.
+
+        Returns:
+            float: propellant density
+        """
         if self.grain.density is not None:
             return self.grain.density
         return self.propellant.density
 
     def evaluate_empirical_chamber_pressure(self):
+        """Computation of motors chamber pressure from user supplied
+        thrust data.
+
+        Source:
+        https://www.grc.nasa.gov/www/k-12/rocket/rktthsum.html
+
+        Returns:
+            list: chamber pressure values for each thrust input
+        """
         T_0, R, _, k, A_t = self.parameters
         chamber_pressure_list = []
 
@@ -64,7 +79,16 @@ class BurnEmpirical(Burn):
         return chamber_pressure_list
 
     def evaluate_empirical_burn_rate(self):
+        """Computation of the total grain burn rate from user supplied thrust
+        data.
 
+        Source: https://pt.scribd.com/document/549653934/RocketElementsHandout.
+        Fundamentos de propulsao solida de foguetes. Equation (5.26) on page 42,
+        derived from Sutton, Rocket Propulsion Elements, 8ed, page 445 - 453.
+
+        Returns:
+            list: burn rate values from thrust data
+        """
         self.empirical_chamber_pressure = self.evaluate_empirical_chamber_pressure()
 
         burn_rate_list = []
@@ -138,10 +162,26 @@ class EmpiricalExport(Export):
         return None
 
     def all_info(self):
-        print("Max Empirical Thrust: ", self.max_empirical_thrust)
-        print("Max Empirical Chamber pressure: ", self.max_empirical_chamber_pressure)
-        print("Total Empirical Impulse: ", self.empirical_total_impulse)
-        print("Empirical Specific Impulse: ", self.empirical_specific_impulse)
+        print("Total Impulse: {:.2f} Ns".format(self.empirical_total_impulse))
+        print("Max Thrust: {:.2f} N at {:.2f} s".format(*self.max_empirical_thrust))
+        print(
+            "Mean Thrust: {:.2f} N".format(np.mean(self.BurnEmpirical.empirical_thrust))
+        )
+        print(
+            "Max Chamber Pressure: {:.2f} bar at {:.2f} s".format(
+                self.max_empirical_chamber_pressure[0] / 1e5,
+                self.max_empirical_chamber_pressure[1],
+            )
+        )
+        print(
+            "Mean Chamber Pressure: {:.2f} bar".format(
+                np.mean(self.max_empirical_chamber_pressure) / 1e5
+            )
+        )
+        print("Specific Impulse: {:.2f} s".format(self.empirical_specific_impulse))
+        print(
+            "Burnout Time: {:.2f} s".format(self.BurnEmpirical.empirical_time_steps[-1])
+        )
         return None
 
     def plotting(self):

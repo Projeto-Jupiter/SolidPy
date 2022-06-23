@@ -4,7 +4,6 @@ _author_ = ""
 _copyright_ = ""
 _license_ = ""
 
-import csv
 import numpy as np
 from scipy import interpolate
 from scipy.integrate import solve_ivp
@@ -49,12 +48,32 @@ class Rail:
         self.end_rail_velocity = self.solve_rail()[2][-1]
 
     def evaluate_frontal_area(self, frontal_area):
+        """Frontal area computation from user input or cilindrical
+        rocket approximation.
+
+        Args:
+            frontal_area (float): rocket cross sectional frontal area
+        """
         if frontal_area is None:
             self.frontal_area = np.pi * (self.rocket_radius**2)
         else:
             self.frontal_area = frontal_area
 
     def vector_field(self, time, state_variables, parameters):
+        """Generates the vector field of the corresponding simulations
+        state variables (position from rail start, rocket velocity) as
+        required for solve_ivp differential equation solver.
+
+        Args:
+            time (float): independent current time variable
+            state_variables (list): simulation state variables
+            to be solved
+            parameters (tuple): main constants for vector state
+            computation
+
+        Returns:
+            list: vector field of the state variables
+        """
         position, velocity = state_variables
         (
             gravity,
@@ -76,6 +95,19 @@ class Rail:
         return vector_state
 
     def evaluate_jacobian(self, time, state_variables, parameters):
+        """Explicit jacobian computation for faster computation
+        of jacobian dependent solver methods, such as BDF or LSODA.
+
+        Args:
+            time (float): independent current time variable
+            state_variables (list): simulation state variables
+            to be solved
+            parameters (tuple): main constants for vector state
+            computation
+
+        Returns:
+            matrix: jacobian matrix
+        """
         position, velocity = state_variables
         (
             gravity,
@@ -101,11 +133,15 @@ class Rail:
         return jacobian
 
     def solve_rail(self):
+        """Initial conditions setting and solver instatiation.
 
-        """Variables"""
+        Returns:
+            object: solution object containing the solution
+            for the differential equation state variables
+        """
+
         state_variables = [self.initial_position, self.initial_velocity]
 
-        """Parameters"""
         parameters = [
             self.environment.gravity,
             self.rocket_mass,
@@ -117,6 +153,21 @@ class Rail:
         ]
 
         def end_rail(time, state_variables, parameters):
+            """Establishment of solver terminal conditions. The simulation ends
+             if the rocket reaches the end of the rail, i.e. its position is
+             greater than the rail length.
+
+            Args:
+                time (float): independent current time variable
+                state_variables
+                state_variables (list): simulation state variables
+                to be solved
+                parameters (tuple): main constants for vector state
+            computation
+
+            Returns:
+                integer: boolean integer as termination parameter
+            """
             position = state_variables[0]
             if position >= self.rail_length:
                 return 0
@@ -144,17 +195,30 @@ class Rail:
 class RailExport(Export):
     def __init__(self, Rail):
         self.Rail = Rail
-        self.post_processing()
+        self.rail_exporting()
 
-    def post_processing(self):
-        Export.raw_simulation_data_export(
-            self.Rail.solution,
-            "data/rail_movement/rail_data.csv",
-            ["Time", "Position", "Velocity"],
-        )
+    def rail_exporting(self):
+        """Method that calls Export class for solution exporting in a csv.
+
+        Returns:
+            None
+        """
+        try:
+            Export.raw_simulation_data_export(
+                self.Rail.solution,
+                "data/rail_movement/rail_data.csv",
+                ["Time", "Position", "Velocity"],
+            )
+        except OSError as err:
+            print("OS error: {0}".format(err))
         return None
 
     def all_info(self):
+        """Console logging of notable rail movement characteristics.
+
+        Returns:
+            None
+        """
         print("Out rail velocity: {:.2f} m/s".format(self.Rail.end_rail_velocity))
         print("Mean rail velocity: {:.2f} m/s".format(np.mean(self.Rail.velocity)))
         print("Out rail time: {:.2f} s".format(self.Rail.time[-1]))
@@ -162,7 +226,11 @@ class RailExport(Export):
         return None
 
     def plotting(self):
+        """Plot graphs of notable rail movement values.
 
+        Returns:
+            None
+        """
         figure(1, figsize=(16, 9))
         xlabel("t")
         grid(True)

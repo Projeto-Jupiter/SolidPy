@@ -10,9 +10,19 @@ import numpy as np
 
 class Export:
     @staticmethod
-    def evaluate_max_list(list, time_list):
-        max_index = np.argmax(list)
-        max_value = list[max_index]
+    def evaluate_max_list(parameter_list, time_list):
+        """Method for evaluating the max value of a time dependent
+        simulation parameter along the time of max
+
+        Args:
+            parameter_list (list): time dependent simulation parameter
+            time_list (list): time steps for the supplied parameter
+
+        Returns:
+            tuple: tuple containing the max value and its time
+        """
+        max_index = np.argmax(parameter_list)
+        max_value = parameter_list[max_index]
         time_of_max = time_list[max_index]
         return max_value, time_of_max
 
@@ -29,6 +39,19 @@ class Export:
     def raw_simulation_data_export(
         data, filepath: str, header_line, append: bool = False
     ):
+        """Adapter method for direct export of simulation solution given
+        by solve_ivp
+
+        Args:
+            data (list): solution data list to be exported
+            filepath (str): filepath to the csv
+            header_line (list): list of strings as csv header
+            append (bool, optional): boolean option for appending or overwriting
+            existing csv. Defaults to False.
+
+        Returns:
+            None
+        """
 
         append_boolean = "a" if append else "w"
 

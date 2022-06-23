@@ -5,7 +5,6 @@ _copyright_ = ""
 _license_ = ""
 
 import math
-
 import numpy as np
 
 from scipy.optimize import fsolve
@@ -43,6 +42,17 @@ class Burn:
         return parameters
 
     def evaluate_nozzle_mass_flow(self, chamber_pressure):
+        """Calculation of total nozzle mass flow.
+
+        Source:
+            https://www.grc.nasa.gov/www/k-12/rocket/rktthsum.html
+
+        Args:
+            chamber_pressure (float): current chamber pressure
+
+        Returns:
+            float: nozzle mass flow for the specified chamber pressure
+        """
         T_0, R, _, k, A_t = self.parameters
         return (
             chamber_pressure
@@ -52,6 +62,15 @@ class Burn:
         )
 
     def evaluate_exit_mach(self):
+        """Calculation of mach number at nozzle exit
+        (ratio of flow speed to the local sound speed).
+
+        Source:
+        https://www.grc.nasa.gov/www/k-12/rocket/rktthsum.html
+
+        Returns:
+            float: mach number
+        """
         _, _, _, k, _ = self.parameters
         func = (
             lambda mach_number: math.pow((k + 1) / 2, -(k + 1) / (2 * (k - 1)))
@@ -63,6 +82,17 @@ class Burn:
         return self.exit_mach
 
     def evaluate_exit_pressure(self, chamber_pressure):
+        """Calculation of the pressure at nozzle exit .
+
+        Source:
+        https://www.grc.nasa.gov/www/k-12/rocket/rktthsum.html
+
+        Args:
+            chamber_pressure (float): current chamber pressure
+
+        Returns:
+            float: exit pressure for the specified chamber pressure
+        """
         _, _, _, k, _ = self.parameters
         self.exit_pressure = chamber_pressure * math.pow(
             (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
@@ -70,11 +100,27 @@ class Burn:
         return self.exit_pressure
 
     def evaluate_exit_temperature(self):
+        """Calculation of fluid temperature at nozzle exit.
+
+        Source:
+        https://www.grc.nasa.gov/www/k-12/rocket/rktthsum.html
+
+        Returns:
+            float: exit temperature
+        """
         T_0, _, _, k, _ = self.parameters
         self.exit_temperature = T_0 / (1 + (k - 1) / 2 * self.exit_mach**2)
         return self.exit_temperature
 
     def evaluate_exit_velocity(self):
+        """Calculation of fluid velocity at nozzle exit.
+
+        Source:
+        https://www.grc.nasa.gov/www/k-12/rocket/rktthsum.html
+
+        Returns:
+            float: exit velocity
+        """
         _, R, _, k, _ = self.parameters
         self.exit_velocity = self.evaluate_exit_mach() * math.sqrt(
             k * R * self.evaluate_exit_temperature()
@@ -82,6 +128,20 @@ class Burn:
         return self.exit_velocity
 
     def evaluate_Cf(self, chamber_pressure):
+        """Calculation of the engine's thrust coefficient.
+
+        Source:
+        Rogers, RasAero: The Solid Rocket Motor - Part 4 - Departures
+        fro Ideal Performance for Conical Nozzles and Bell Nozzles,
+        page 28, eq.(9). High Power Rocketry.
+
+        Args:
+            chamber_pressure (float): current chamber pressure
+
+        Returns:
+            (float): the motor's thrust coefficient for
+            a given chamber pressure
+        """
         _, _, _, k, _ = self.parameters
         self.Cf = (
             math.sqrt(
@@ -108,6 +168,14 @@ class Burn:
         return self.Cf
 
     def evaluate_thrust(self, chamber_pressure):
+        """Calculation of engine's thrust
+
+        Args:
+            chamber_pressure (float): current chamber
+
+        Returns:
+            float: motor's thrust for a given chamber pressure
+        """
         self.thrust = (
             self.evaluate_Cf(chamber_pressure)
             * chamber_pressure
@@ -116,21 +184,53 @@ class Burn:
         return self.thrust
 
     def evaluate_total_impulse(self, thrust_list, time_list):
+        """Numerical integration by trapezoids for total impulse
+        approximation.
+
+        Args:
+            thrust_list (float list or float arrays): list of thrust values
+            for each time step
+            time_list (float list or float arrays): list of time steps
+
+        Returns:
+            float: the total impulse correspondent to the integral of
+            the given values
+        """
         total_impulse = cumtrapz(thrust_list, time_list)[-1]
         return total_impulse
 
     def evaluate_specific_impulse(self, thrust_list, time_list):
+        """Calculation of motor's specific impulse.
+
+        Args:
+            thrust_list (float list or float arrays): list of thrust values
+            time_list (float list or float arrays): list of time steps
+
+        Returns:
+            float: the specific impulse for the given values and propellant mass
+        """
         specific_impulse = self.evaluate_total_impulse(thrust_list, time_list) / (
             self.propellant.density
             * self.grain.volume
             * self.motor.grain_number
-            * self.gravity
+            * self.environment.standard_gravity
         )
         return specific_impulse
 
     def evaluate_burn_rate(
         self, chamber_pressure, chamber_pressure_derivative, free_volume, burn_area
     ):
+        """Calculation of propellante rate of regression, i.e. burn rate
+
+        Args:
+            chamber_pressure (float): current chamber pressure
+            chamber_pressure_derivative (float): current chamber pressure derivative
+            free_volume (float): current combustion chamber free volume
+            burn_area (float): current total grain burn area accounting for regression
+
+        Returns:
+            float: current propellant burn rate
+        """
         T_0, R, rho_g, _, _ = self.parameters
 
         rho_0 = chamber_pressure / (R * T_0)  # product_gas_density
@@ -156,6 +256,20 @@ class BurnSimulation(Burn):
     """Solver required functions"""
 
     def vector_field(self, time, state_variables):
+        """Generates the vector field of the corresponding simulations
+        state variables (chamber pressure, free combustion chamber volume,
+        length of grain regression), as required for solve_ivp differential
+        equation solver. The grain regression length is measured with the
+        zero at initial inner radius.
+
+        Args:
+            time (float): independent current time variable
+            state_variables (list): simulation state variables
+            to be solved
+
+        Returns:
+            list: vector field of the state variables
+        """
 
         chamber_pressure, free_volume, regressed_length = state_variables
         T_0, R, rho_g, _, _ = self.parameters
@@ -180,6 +294,12 @@ class BurnSimulation(Burn):
         return vector_state
 
     def solve_burn(self):
+        """Initial conditions setting and solver instatiation.
+
+        Returns:
+            object: solution object containing the solution
+            for the differential equation state variables
+        """
         regressed_length = 0
         state_variables = [
             self.environment_pressure,
@@ -188,6 +308,19 @@ class BurnSimulation(Burn):
         ]
 
         def end_burn_propellant(time, state_variables):
+            """Establishment of solver terminal conditions. The simulation
+            ends if the grain is totally regressed (burnt) emptying the
+            combustion chamber.
+
+            Args:
+                time (float): independent current time variable
+                state_variables
+                (list): simulation state variables
+                to be solved
+
+            Returns:
+                integer: boolean integer as termination parameter
+            """
             chamber_pressure, free_volume, regressed_length = state_variables
             if (self.motor.chamber_volume - free_volume < 1e-6) or (
                 self.grain.inner_radius >= self.grain.outer_radius
@@ -211,15 +344,24 @@ class BurnSimulation(Burn):
         return solution
 
     def solve_tail_off_regime(self):
+        """Evaluates an analytical equation that describes the remaining
+        chamber gases behavior after total grain burn.
+
+        Returns:
+            list: solution of the tail off regime, agrouping time steps
+            and chamber pressure
+        """
 
         T_0, R, _, _, A_t = self.parameters
 
+        # Set initial values at the end of grain burn simulation
         (
             self.initial_tail_off_time,
             self.initial_tail_off_chamber_pressure,
             self.initial_tail_off_free_volume,
         ) = (self.solution[0][-1], self.solution[1][-1], self.solution[2][-1])
 
+        # Analytical solution to the fluid behavior after grain burn
         self.evaluate_tail_off_chamber_pressure = (
             lambda time: self.initial_tail_off_chamber_pressure
             * math.exp(
@@ -231,6 +373,7 @@ class BurnSimulation(Burn):
             )
         )
 
+        # Keep the same time pacing for uniform union with burn solution
         time_steps = np.linspace(
             self.initial_tail_off_time,
             100.0,
@@ -253,6 +396,13 @@ class BurnSimulation(Burn):
         return self.tail_off_solution
 
     def evaluate_solution(self):
+        """Iteration throught the solve_ivp solution in order to compute
+        notable burn characteristics besides the state variables, such as thrust,
+        exit pressure and exit velocity.
+
+        Returns:
+            list: list containing the whole solution and added burn computations
+        """
         burn_solution = self.solve_burn()
 
         thrust_list = []
@@ -294,24 +444,40 @@ class BurnExport(Export):
             self.tail_off_chamber_pressure,
         ) = self.BurnSimulation.tail_off_solution
 
+        self.burn_exporting()
         self.post_processing()
 
+    def burn_exporting(self):
+        """Method that calls Export class for solution exporting in a csv.
+
+        Returns:
+            None
+        """
+        try:
+            Export.raw_simulation_data_export(
+                self.BurnSimulation.solution,
+                "data/burn_simulation/burn_data.csv",
+                [
+                    "Time",
+                    "Chamber Pressure",
+                    "Free Volume",
+                    "Regressed Length",
+                    "Thrust",
+                    "Exit Pressure",
+                    "Exit Velocity",
+                ],
+            )
+        except OSError as err:
+            print("OS error: {0}".format(err))
+        return None
+
     def post_processing(self):
+        """Method for post solution values processing, allowing for final
+        notable burn evaluations and notable solution points, such as extrema.
 
-        Export.raw_simulation_data_export(
-            self.BurnSimulation.solution,
-            "data/burn_simulation/burn_data.csv",
-            [
-                "Time",
-                "Chamber Pressure",
-                "Free Volume",
-                "Regressed Length",
-                "Thrust",
-                "Exit Pressure",
-                "Exit Velocity",
-            ],
-        )
-
+        Returns:
+            None
+        """
         (
             self.max_chamber_pressure,
             self.end_free_volume,
@@ -340,7 +506,11 @@ class BurnExport(Export):
         return None
 
     def all_info(self):
+        """Console logging of notable burn characteristics.
 
+        Returns:
+            None
+        """
         print("Total Impulse: {:.2f} Ns".format(self.total_impulse))
         print("Max Thrust: {:.2f} N at {:.2f} s".format(*self.max_thrust))
         print("Mean Thrust: {:.2f} N".format(np.mean(self.thrust)))
@@ -361,7 +531,11 @@ class BurnExport(Export):
         return None
 
     def plotting(self):
+        """Plot graphs of notable burn list values.
 
+        Returns:
+            None
+        """
         figure(1, figsize=(16, 9))
         xlabel("t")
         grid(True)
