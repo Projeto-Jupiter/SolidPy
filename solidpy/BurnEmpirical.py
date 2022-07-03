@@ -130,6 +130,8 @@ class BurnEmpirical(Burn):
             )
             free_volume += burn_area * regressed_length
 
+            #print(burn_rate,self.empirical_time_steps[pressure_list_index], chamber_pressure, chamber_pressure_derivative, free_volume, self.evaluate_nozzle_mass_flow(chamber_pressure))
+
         return burn_rate_list
 
 
@@ -239,41 +241,43 @@ class EmpiricalExport(Export):
 if __name__ == "__main__":
     """Burn definitions"""
 
-    Grao_Leviata = Grain(
-        outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000, mass=700 / 1000
+    Grao_Mandioca = Grain(
+        outer_radius= 94 / 2000, initial_inner_radius= 32 / 2000, 
+        #mass=700 / 1000,
+        initial_height = 156 / 1000
     )
-    Leviata = Motor(
-        Grao_Leviata,
-        grain_number=4,
-        chamber_inner_radius=77.92 / 2000,
-        nozzle_throat_radius=17.5 / 2000,
-        nozzle_exit_radius=44.44 / 2000,
+    Mandioca = Motor(
+        Grao_Mandioca,
+        grain_number=5,
+        chamber_inner_radius=98 / 2000,
+        nozzle_throat_radius=11.4 / 1000,
+        nozzle_exit_radius=33.5 / 1000,
         nozzle_angle=15 * np.pi / 180,
-        chamber_length=600 / 1000,
+        chamber_length=840 / 1000,
     )
     KNSB = Propellant(
         specific_heat_ratio=1.1361,
-        density=1700,
+        density=1600,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
-        # burn_rate_a=5.13,
-        # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB3.csv",
+        burn_rate_a=5.13,
+        burn_rate_n=0.22,
+        #interpolation_list="data/burnrate/KNSB.csv",
     )
     # Ambient = Environment(101325, 1.25, -0.38390456)
 
     """Static-fire data"""
 
-    data_path = "data/static_fires/leviata_final_curve.csv"
+    data_path = "data/static_fires/thrustCurveMandioca.csv"
     ext_data = np.loadtxt(
         data_path,
         delimiter=",",
         unpack=True,
-        skiprows=1,
+        skiprows=0,
     )
 
     Empirical_Simulation = BurnEmpirical(
-        Grao_Leviata, Leviata, KNSB, empirical_data=ext_data
+        Grao_Mandioca, Mandioca, KNSB, empirical_data=ext_data
     )
     ExportPlot = EmpiricalExport(Empirical_Simulation)
 

@@ -10,6 +10,7 @@ import numpy as np
 from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
+import pylab as plt
 from pylab import figure, plot, xlabel, grid, legend, title, savefig, show
 
 from Grain import Grain
@@ -251,7 +252,6 @@ class BurnSimulation(Burn):
         self.max_step_size = max_step_size
 
         self.solution = self.evaluate_solution()
-        self.tail_off_solution = self.solve_tail_off_regime()
 
     """Solver required functions"""
 
@@ -353,13 +353,14 @@ class BurnSimulation(Burn):
         """
 
         T_0, R, _, _, A_t = self.parameters
+        burn_solution = self.solve_burn()
 
         # Set initial values at the end of grain burn simulation
         (
             self.initial_tail_off_time,
             self.initial_tail_off_chamber_pressure,
             self.initial_tail_off_free_volume,
-        ) = (self.solution[0][-1], self.solution[1][-1], self.solution[2][-1])
+        ) = (burn_solution.t[-1], burn_solution.y[0][-1], burn_solution.y[1][-1])
 
         # Analytical solution to the fluid behavior after grain burn
         self.evaluate_tail_off_chamber_pressure = (
@@ -403,20 +404,23 @@ class BurnSimulation(Burn):
         Returns:
             list: list containing the whole solution and added burn computations
         """
+
+        self.tail_off_solution = self.solve_tail_off_regime()
         burn_solution = self.solve_burn()
+        print(self.tail_off_solution[1])
 
         thrust_list = []
         exit_velocity_list = []
         exit_pressure_list = []
 
-        for chamber_pressure in burn_solution.y[0]:
+        for chamber_pressure in (np.append(burn_solution.y[0],self.tail_off_solution[1])):
             thrust_list.append(self.evaluate_thrust(chamber_pressure))
             exit_velocity_list.append(self.evaluate_exit_velocity())
             exit_pressure_list.append(self.evaluate_exit_pressure(chamber_pressure))
 
         burn_solution = [
-            burn_solution.t,
-            burn_solution.y[0],
+            np.append(burn_solution.t, self.tail_off_solution[0]),
+            np.append(burn_solution.y[0],self.tail_off_solution[1]) ,
             burn_solution.y[1],
             burn_solution.y[2],
             thrust_list,
@@ -541,15 +545,16 @@ class BurnExport(Export):
         grid(True)
         plot(self.time, self.thrust, "b", linewidth=0.75, label=r"$F_T$")
         legend(prop=FontProperties(size=16))
-        title("Thrust as function of time")
+        title("Mandioca Thrust as function of Time")
         savefig("data/burn_simulation/graphs/thrust.png", dpi=200)
 
         figure(2, figsize=(16, 9))
-        xlabel("t")
+        xlabel("time (s)")
+        plt.ylabel("chamber pressure (pa)")
         grid(True)
         plot(self.time, self.chamber_pressure, "b", linewidth=0.75, label=r"$p_c$")
         legend(prop=FontProperties(size=16))
-        title("Chamber Pressure as function of time")
+        title("Mandioca Chamber Pressure as function of Time")
         savefig("data/burn_simulation/graphs/chamber_pressure.png", dpi=200)
 
         figure(3, figsize=(16, 9))
@@ -560,27 +565,27 @@ class BurnExport(Export):
         title("Exit Pressure as function of time")
         savefig("data/burn_simulation/graphs/exit_pressure.png", dpi=200)
 
-        figure(4, figsize=(16, 9))
-        xlabel("t")
-        grid(True)
-        plot(self.time, self.free_volume, "b", linewidth=0.75, label=r"$\forall_c$")
-        legend(prop=FontProperties(size=16))
-        title("Free Volume as function of time")
-        savefig("data/burn_simulation/graphs/free_volume.png", dpi=200)
+        # figure(4, figsize=(16, 9))
+        # xlabel("t")
+        # grid(True)
+        # plot(self.time, self.free_volume, "b", linewidth=0.75, label=r"$\forall_c$")
+        # legend(prop=FontProperties(size=16))
+        # title("Free Volume as function of time")
+        # savefig("data/burn_simulation/graphs/free_volume.png", dpi=200)
 
-        figure(5, figsize=(16, 9))
-        xlabel("t")
-        grid(True)
-        plot(
-            self.time,
-            self.regressed_length,
-            "b",
-            linewidth=0.75,
-            label=r"$\ell_{regr}$",
-        )
-        legend(prop=FontProperties(size=16))
-        title("Regressed Grain Length as function of time")
-        savefig("data/burn_simulation/graphs/regressed_length.png", dpi=200)
+        # figure(5, figsize=(16, 9))
+        # xlabel("t")
+        # grid(True)
+        # plot(
+        #     self.time,
+        #     self.regressed_length,
+        #     "b",
+        #     linewidth=0.75,
+        #     label=r"$\ell_{regr}$",
+        # )
+        # legend(prop=FontProperties(size=16))
+        # title("Regressed Grain Length as function of time")
+        # savefig("data/burn_simulation/graphs/regressed_length.png", dpi=200)
 
         figure(8, figsize=(16, 9))
         xlabel("t")
@@ -606,10 +611,9 @@ class BurnExport(Export):
             self.tail_off_chamber_pressure,
             "m",
             linewidth=0.75,
-            label=r"$p^{toff}_c$",
         )
         legend(prop=FontProperties(size=16))
-        title("Total Burn Chamber Pressure as function of time")
+        title("Mandioca Total Burn Chamber Pressure as function of Time")
         savefig("data/burn_simulation/graphs/total_burn_chamber_pressure.png", dpi=200)
 
         return None
@@ -617,41 +621,33 @@ class BurnExport(Export):
 
 if __name__ == "__main__":
     """Burn definitions"""
-    Grao_Leviata = Grain(
-        outer_radius=71.92 / 2000,
-        initial_inner_radius=31.92 / 2000,
+    Grao_Mandioca = Grain(
+        outer_radius= 94 / 2000, initial_inner_radius= 32 / 2000, 
+        #mass=700 / 1000,
+        initial_height = 156 / 1000
     )
-    Leviata = Motor(
-        Grao_Leviata,
-        grain_number=4,
-        chamber_inner_radius=77.92 / 2000,
-        nozzle_throat_radius=17.5 / 2000,
-        nozzle_exit_radius=44.44 / 2000,
+    Mandioca = Motor(
+        Grao_Mandioca,
+        grain_number=5,
+        chamber_inner_radius=98 / 2000,
+        nozzle_throat_radius=11.4 / 1000,
+        nozzle_exit_radius=33.5 / 1000,
         nozzle_angle=15 * np.pi / 180,
-        chamber_length=600 / 1000,
+        chamber_length=840 / 1000,
     )
     KNSB = Propellant(
         specific_heat_ratio=1.1361,
-        density=1700,
+        density=1600,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
-        # burn_rate_a=5.13,
-        # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB3.csv",
+        burn_rate_a=5.13,
+        burn_rate_n=0.22,
+        #interpolation_list="data/burnrate/KNSB3.csv",
     )
-    Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
-
-    """Static-fire data"""
-    data_path = "data/static_fires/leviata_final_curve.csv"
-    ext_data = np.loadtxt(
-        data_path,
-        delimiter=",",
-        unpack=True,
-        skiprows=1,
-    )
+    # Ambient = Environment(101325, 1.25, -0.38390456)
 
     """Class instances"""
-    Simulation = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
+    Simulation = BurnSimulation(Grao_Mandioca, Mandioca, KNSB)
     ExportPlot = BurnExport(Simulation)
 
     """Desired outputs"""

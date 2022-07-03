@@ -18,7 +18,6 @@ from Export import Export
 class Rail:
     def __init__(
         self,
-        environment,
         rocket_mass,
         rocket_radius,
         aerodynamic_drag_coefficient,
@@ -26,6 +25,7 @@ class Rail:
         rail_angle,
         thrust,
         frontal_area,
+        environment=Environment()
     ):
         self.environment = environment
 
@@ -263,8 +263,8 @@ if __name__ == "__main__":
 
     thrust = interpolate.interp1d(ext_time_list, ext_thrust)
 
-    Pirassununga = Environment(-0.38390456, 627, ellipsoidal_model=True)
-    Keron_test = Rail(Pirassununga, 10, 100 / 2000, 0.5, 4, np.pi / 2, thrust, None)
+    #Pirassununga = Environment(-0.38390456, 627, ellipsoidal_model=True)
+    Mandioca_test = Rail(30, 106.6 / 2000, 0.5, 4.8, np.pi / 2, thrust, None)
 
-    RailExport(Keron_test).all_info()
-    RailExport(Keron_test).plotting()
+    RailExport(Mandioca_test).all_info()
+    RailExport(Mandioca_test).plotting()
