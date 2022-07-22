@@ -594,6 +594,9 @@ class BurnExport(Export):
         print("Specific Impulse: {:.2f} s".format(self.specific_impulse))
         print("Burnout Time: {:.2f} s".format(self.time[-1]))
 
+        # print(self.BurnSimulation.propellant.evaluate_burn_rate(3e6)*1e3)
+        # print(self.chamber_pressure)
+
         return None
 
     def plotting(self):
@@ -673,12 +676,12 @@ class BurnExport(Export):
 
 
 if __name__ == "__main__":
-    """Burn definitions"""
-    Grao_Leviata = Grain(
+   """Burn definitions"""
+   Grao_Leviata = Grain(
         outer_radius=71.92 / 2000,
         initial_inner_radius=31.92 / 2000,
     )
-    Leviata = Motor(
+   Leviata = Motor(
         Grao_Leviata,
         grain_number=4,
         chamber_inner_radius=77.92 / 2000,
@@ -687,32 +690,24 @@ if __name__ == "__main__":
         nozzle_angle=15 * np.pi / 180,
         chamber_length=600 / 1000,
     )
-    KNSB = Propellant(
+   KNSB = Propellant(
         specific_heat_ratio=1.1361,
         density=1700,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
         # burn_rate_a=5.13,
         # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB3.csv",
-    )
-    Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
-
-    """Static-fire data"""
-    data_path = "data/static_fires/leviata_final_curve.csv"
-    ext_data = np.loadtxt(
-        data_path,
-        delimiter=",",
-        unpack=True,
-        skiprows=1,
+        interpolation_list="data/burnrate/test_emp2.csv",
     )
 
-    """Class instances"""
-    Simulation = BurnSimulation(
+   Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
+
+   """Class instances"""
+   Simulation = BurnSimulation(
         Grao_Leviata, Leviata, KNSB, Ambient, tail_off_evaluation=True
     )
-    ExportPlot = BurnExport(Simulation)
+   ExportPlot = BurnExport(Simulation)
 
-    """Desired outputs"""
-    ExportPlot.all_info()
-    ExportPlot.plotting()
+   """Desired outputs"""
+   ExportPlot.all_info()
+   ExportPlot.plotting()

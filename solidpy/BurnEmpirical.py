@@ -218,10 +218,20 @@ class EmpiricalExport(Export):
                 "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
             )
 
+            k = np.polynomial.polynomial.Polynomial.fit(self.BurnEmpirical.empirical_time_steps[:-1], self.BurnEmpirical.empirical_burn_rate, 7)
+            k1 = []
+            t1 = []
+            for l in self.BurnEmpirical.empirical_time_steps[:-1]:
+                if k(l) >= 0:
+                    k1.append(k(l))
+                    t1.append(l)
+                else:
+                    break
+
             plt.figure(3, figsize=(16, 9))
             plt.plot(
-                self.BurnEmpirical.empirical_time_steps[:-1],
-                self.BurnEmpirical.empirical_burn_rate,
+                t1,
+                k1,
                 color="g",
                 linewidth=0.75,
                 label=r"$r^{emp}$",
@@ -233,6 +243,65 @@ class EmpiricalExport(Export):
             plt.title("Empirical Burn Rate as function of time")
             plt.savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
 
+
+            max_time_index=0
+            for count, value in enumerate(self.BurnEmpirical.empirical_chamber_pressure):
+                if value > 3.5e6:
+                    max_time_index = count
+                    break
+
+            bur = np.polynomial.polynomial.Polynomial.fit(self.BurnEmpirical.empirical_chamber_pressure[:max_time_index], self.BurnEmpirical.empirical_burn_rate[:max_time_index], 3)
+
+            bur_vec = []
+            pvec = [i for i in range(int(0.1e5), int(4.2e6), int(1e4))]
+
+            for i in pvec:
+                bur_vec.append(bur(i))
+
+            plt.figure(4, figsize=(16, 9))
+            plt.plot(
+                self.BurnEmpirical.empirical_chamber_pressure[:max_time_index],
+                self.BurnEmpirical.empirical_burn_rate[:max_time_index],
+                color="g",
+                linewidth=0.75,
+                label=r"$r^{emp}$",
+            )
+            plt.grid(True)
+            plt.xlabel("chamber pressure (pa)")
+            plt.ylabel("burn rate (m/s)")
+            plt.legend(prop=FontProperties(size=16))
+            plt.title("Empirical Burn Rate as function of chamber pressure")
+            plt.savefig("data/burn_simulation/graphs/empirical_burn_rate_to_pressure.png", dpi=200)
+
+            plt.figure(5, figsize=(16, 9))
+            plt.plot(
+                pvec,
+                bur_vec,
+                color="g",
+                linewidth=0.75,
+                label=r"$r^{emp}$",
+            )
+            plt.grid(True)
+            plt.xlabel("chamber pressure (pa)")
+            plt.ylabel("burn rate (m/s)")
+            plt.legend(prop=FontProperties(size=16))
+            plt.title("Empirical Burn Rate as function of chamber pressure")
+            plt.savefig("data/burn_simulation/graphs/empirical_burn_rate_to_pressure2.png", dpi=200)
+
+            p1 = []
+            tt = []
+            for i in self.BurnEmpirical.empirical_chamber_pressure[:max_time_index]: p1.append(i*1e-6)
+            for t in self.BurnEmpirical.empirical_burn_rate[:max_time_index]: tt.append(t*1e3)
+
+            p2 = []
+            tt2 = []
+            for i in pvec: p2.append(i*1e-6)
+            for t in bur_vec: tt2.append(t*1e3)
+
+            Export.raw_simulation_data_export([p1, tt], "data/burnrate/test_emp.csv", ["Chamber Pressure (MPa)", "Burn rate (mm/s)"])
+            Export.raw_simulation_data_export([p2, tt2], "data/burnrate/test_emp2.csv", ["Chamber Pressure (MPa)", "Burn rate (mm/s)"])
+
+
         except AttributeError:
             print(">>> Empirical data not found, empirical plots were not updated.\n")
 
@@ -240,45 +309,47 @@ class EmpiricalExport(Export):
 
 
 if __name__ == "__main__":
-    """Burn definitions"""
+   """Burn definitions"""
 
-    Grao_Leviata = Grain(
-        outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000, mass=700 / 1000
+   Grao_Mandioca = Grain(
+        outer_radius= 94 / 2000, initial_inner_radius= 32 / 2000, 
+        #mass=700 / 1000,
+        initial_height = 156 / 1000
     )
-    Leviata = Motor(
-        Grao_Leviata,
-        grain_number=4,
-        chamber_inner_radius=77.92 / 2000,
-        nozzle_throat_radius=17.5 / 2000,
-        nozzle_exit_radius=44.44 / 2000,
+   Mandioca = Motor(
+        Grao_Mandioca,
+        grain_number=5,
+        chamber_inner_radius=98 / 2000,
+        nozzle_throat_radius=11.4 / 1000,
+        nozzle_exit_radius=33.5 / 1000,
         nozzle_angle=15 * np.pi / 180,
-        chamber_length=600 / 1000,
+        chamber_length=840 / 1000,
     )
-    KNSB = Propellant(
+   KNSB = Propellant(
         specific_heat_ratio=1.1361,
-        density=1700,
+        density=1600,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
-        # burn_rate_a=5.13,
-        # burn_rate_n=0.22,
+        #burn_rate_a=5.13,
+        #burn_rate_n=0.22,
         interpolation_list="data/burnrate/KNSB3.csv",
     )
-    # Ambient = Environment(101325, 1.25, -0.38390456)
+   Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
 
-    """Static-fire data"""
+   """Static-fire data"""
 
-    data_path = "data/static_fires/leviata_final_curve.csv"
-    ext_data = np.loadtxt(
+   data_path = "data/static_fires/mandiocaSF.csv"
+   ext_data = np.loadtxt(
         data_path,
         delimiter=",",
         unpack=True,
-        skiprows=1,
+        skiprows=0,
     )
 
-    Empirical_Simulation = BurnEmpirical(
-        Grao_Leviata, Leviata, KNSB, empirical_data=ext_data
+   Empirical_Simulation = BurnEmpirical(
+        Grao_Mandioca, Mandioca, KNSB, empirical_data=ext_data
     )
-    ExportPlot = EmpiricalExport(Empirical_Simulation)
+   ExportPlot = EmpiricalExport(Empirical_Simulation)
 
-    ExportPlot.all_info()
-    ExportPlot.plotting()
+   ExportPlot.all_info()
+   ExportPlot.plotting()
