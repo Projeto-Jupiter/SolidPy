@@ -65,3 +65,14 @@ class Export:
                 solution_writer.writerow(data_array)
 
             return None
+
+    @staticmethod
+    def evaluate_mean(thrust_list):
+        sum = 0
+        index = 0
+        for thrust in thrust_list:
+            if thrust >=0:
+                sum += thrust
+                index += 1
+        
+        return sum/index

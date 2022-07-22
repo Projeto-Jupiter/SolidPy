@@ -7,9 +7,9 @@ _license_ = ""
 import math
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from matplotlib.font_manager import FontProperties
-from pylab import figure, plot, xlabel, grid, legend, title, savefig, show
 
 from Grain import Grain
 from Motor import Motor
@@ -186,49 +186,52 @@ class EmpiricalExport(Export):
 
     def plotting(self):
         try:
-            figure(6, figsize=(16, 9))
-            xlabel("t")
-            grid(True)
-            plot(
+            plt.figure(1, figsize=(16, 9))
+            plt.plot(
                 self.BurnEmpirical.empirical_time_steps,
                 self.BurnEmpirical.empirical_thrust,
-                "g",
+                color="g",
                 linewidth=0.75,
                 label=r"$F^{emp}_T$",
             )
-            legend(prop=FontProperties(size=16))
-            title("Empirical Thrust as function of time")
-            savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
+            plt.grid(True)
+            plt.xlabel("time (s)")
+            plt.ylabel("thrust (N)")
+            plt.legend(prop=FontProperties(size=16))
+            plt.title("Empirical Thrust as function of time")
+            plt.savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
 
-            figure(7, figsize=(16, 9))
-            xlabel("t")
-            grid(True)
-            plot(
+            plt.figure(2, figsize=(16, 9))
+            plt.plot(
                 self.BurnEmpirical.empirical_time_steps,
                 self.BurnEmpirical.empirical_chamber_pressure,
-                "g",
+                color="g",
                 linewidth=0.75,
                 label=r"$p^{emp}_c$",
             )
-            legend(prop=FontProperties(size=16))
-            title("Empirical Chamber Pressure as function of time")
-            savefig(
+            plt.grid(True)
+            plt.xlabel("time (s)")
+            plt.ylabel("chamber pressure (pa)")
+            plt.legend(prop=FontProperties(size=16))
+            plt.title("Empirical Chamber Pressure as function of time")
+            plt.savefig(
                 "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
             )
 
-            figure(10, figsize=(16, 9))
-            xlabel("t")
-            grid(True)
-            plot(
+            plt.figure(3, figsize=(16, 9))
+            plt.plot(
                 self.BurnEmpirical.empirical_time_steps[:-1],
                 self.BurnEmpirical.empirical_burn_rate,
-                "g",
+                color="g",
                 linewidth=0.75,
                 label=r"$r^{emp}$",
             )
-            legend(prop=FontProperties(size=16))
-            title("Empirical Burn Rate as function of time")
-            savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
+            plt.grid(True)
+            plt.xlabel("time (s)")
+            plt.ylabel("burn rate (m/s)")
+            plt.legend(prop=FontProperties(size=16))
+            plt.title("Empirical Burn Rate as function of time")
+            plt.savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
 
         except AttributeError:
             print(">>> Empirical data not found, empirical plots were not updated.\n")

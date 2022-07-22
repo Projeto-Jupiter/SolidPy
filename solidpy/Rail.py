@@ -5,11 +5,11 @@ _copyright_ = ""
 _license_ = ""
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 from scipy import interpolate
 from scipy.integrate import solve_ivp
-
 from matplotlib.font_manager import FontProperties
-from pylab import figure, plot, xlabel, grid, legend, title, savefig, show
 
 from Environment import Environment
 from Export import Export
@@ -231,25 +231,27 @@ class RailExport(Export):
         Returns:
             None
         """
-        figure(1, figsize=(16, 9))
-        xlabel("t")
-        grid(True)
-        plot(
-            self.Rail.time, self.Rail.velocity, "b", linewidth=0.75, label=r"$v_{rail}$"
+        plt.figure(1, figsize=(16, 9))
+        plt.plot(
+            self.Rail.time, self.Rail.velocity, color="orange", linewidth=0.75, label=r"$v_{rail}$"
         )
-        legend(prop=FontProperties(size=16))
-        title("Rail velocity as function of time")
-        savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
+        plt.grid(True)
+        plt.xlabel("time (s)")
+        plt.ylabel("velocity (m/s)")
+        plt.legend(prop=FontProperties(size=16))
+        plt.title("Rail velocity as function of time")
+        plt.savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
 
-        figure(2, figsize=(16, 9))
-        xlabel("t")
-        grid(True)
-        plot(
-            self.Rail.time, self.Rail.position, "b", linewidth=0.75, label=r"$s_{rail}$"
+        plt.figure(2, figsize=(16, 9))
+        plt.plot(
+            self.Rail.time, self.Rail.position, color="orange", linewidth=0.75, label=r"$s_{rail}$"
         )
-        legend(prop=FontProperties(size=16))
-        title("Rail position as function of time")
-        savefig("data/rail_movement/graphs/rail_position.png", dpi=200)
+        plt.grid(True)
+        plt.xlabel("time (s)")
+        plt.ylabel("position (m)")
+        plt.legend(prop=FontProperties(size=16))
+        plt.title("Rail position as function of time")
+        plt.savefig("data/rail_movement/graphs/rail_position.png", dpi=200)
 
         return None
 
