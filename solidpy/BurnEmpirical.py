@@ -169,7 +169,11 @@ class EmpiricalExport(Export):
         return None
 
     def data_regression(self):
+        """Evaluation of polynomial regression from empirical burnrate.
 
+        Returns:
+            None
+        """
         self.max_pressure_index = np.argmax(
             self.BurnEmpirical.empirical_chamber_pressure
         )
@@ -364,7 +368,7 @@ if __name__ == "__main__":
     )
 
     Empirical_Simulation = BurnEmpirical(
-        Grao_Leviata, Leviata, KNSB, empirical_data=ext_data
+        Grao_Leviata, Leviata, KNSB, environment=Ambient, empirical_data=ext_data
     )
     ExportPlot = EmpiricalExport(Empirical_Simulation)
 

@@ -67,12 +67,21 @@ class Export:
             return None
 
     @staticmethod
-    def evaluate_mean(thrust_list):
+    def evaluate_mean(data_list):
+        """Calculates the mean value of a list ignoring negative spurious data.
+
+        Args:
+            data_list (list): list containing values that cannot be negative
+            (for instance thrust, absolute pressures, lengths etc)
+
+        Returns:
+            float: mean value of positive data.
+        """
         sum = 0
         index = 0
-        for thrust in thrust_list:
-            if thrust >= 0:
-                sum += thrust
+        for data in data_list:
+            if data >= 0:
+                sum += data
                 index += 1
 
         return sum / index

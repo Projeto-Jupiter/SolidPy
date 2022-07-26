@@ -598,9 +598,6 @@ class BurnExport(Export):
         print("Specific Impulse: {:.2f} s".format(self.specific_impulse))
         print("Burnout Time: {:.2f} s".format(self.time[-1]))
 
-        # print(self.BurnSimulation.propellant.evaluate_burn_rate(3e6)*1e3)
-        # print(self.chamber_pressure)
-
         return None
 
     def plotting(self):
@@ -709,7 +706,8 @@ if __name__ == "__main__":
         combustion_temperature=1600,
         # burn_rate_a=5.13,
         # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/test_emp.csv",
+        interpolation_list="data/burnrate/KNSB3.csv",
+        # interpolation_list="data/burnrate/simulated/KNSB_Leviata_sim.csv",
     )
 
     Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
