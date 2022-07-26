@@ -43,7 +43,7 @@ class Propellant:
                     burn_rate_list.append(float(line[1]))
                     pressure_list.append(float(line[0]))
             r_function = interpolate.interp1d(
-                pressure_list, burn_rate_list, kind="cubic"
+                pressure_list, burn_rate_list, kind="cubic", fill_value="extrapolate"
             )
             if chamber_pressure < 0:
                 return 0

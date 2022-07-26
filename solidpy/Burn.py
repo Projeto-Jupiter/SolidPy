@@ -257,7 +257,9 @@ class BurnSimulation(Burn):
         self.max_step_size = max_step_size
 
         self.grain_burn_solution = self.evaluate_grain_burn_solution()
-        self.tail_off_solution = self.evaluate_tail_off_solution() if tail_off_evaluation else None
+        self.tail_off_solution = (
+            self.evaluate_tail_off_solution() if tail_off_evaluation else None
+        )
         self.total_burn_solution = self.evaluate_complete_solution()
 
     """Solver required functions"""
@@ -442,7 +444,7 @@ class BurnSimulation(Burn):
 
     def evaluate_grain_burn_solution(self):
         """Adapts solve_ivp results to a simple matrix containing each
-        burn characteristic. 
+        burn characteristic.
 
         Returns:
             list: list containing the solution and added burn computations
@@ -461,7 +463,7 @@ class BurnSimulation(Burn):
 
     def evaluate_tail_off_solution(self):
         """Adapts solve_ivp results to a simple matrix containing each
-        burn characteristic. 
+        burn characteristic.
 
         Returns:
             list: list containing the solution and added burn computations
@@ -488,7 +490,9 @@ class BurnSimulation(Burn):
             for grain_parameter, tail_off_parameter in zip(
                 grain_solution, tail_off_solution
             ):
-                total_burn_solution.append(np.append(grain_parameter, tail_off_parameter))
+                total_burn_solution.append(
+                    np.append(grain_parameter, tail_off_parameter)
+                )
         else:
             for grain_parameter in grain_solution:
                 total_burn_solution.append(grain_parameter)
@@ -615,7 +619,9 @@ class BurnExport(Export):
         plt.savefig("data/burn_simulation/graphs/thrust.png", dpi=200)
 
         plt.figure(2, figsize=(16, 9))
-        plt.plot(self.time, self.chamber_pressure, color="b", linewidth=0.75, label=r"$p_c$")
+        plt.plot(
+            self.time, self.chamber_pressure, color="b", linewidth=0.75, label=r"$p_c$"
+        )
         plt.grid(True)
         plt.xlabel("time (s)")
         plt.ylabel("chamber pressure (pa)")
@@ -624,7 +630,9 @@ class BurnExport(Export):
         plt.savefig("data/burn_simulation/graphs/chamber_pressure.png", dpi=200)
 
         plt.figure(3, figsize=(16, 9))
-        plt.plot(self.time, self.exit_pressure, color="b", linewidth=0.75, label=r"$p_e$")
+        plt.plot(
+            self.time, self.exit_pressure, color="b", linewidth=0.75, label=r"$p_e$"
+        )
         plt.grid(True)
         plt.xlabel("time (s)")
         plt.ylabel("exit pressure (pa)")
@@ -633,7 +641,9 @@ class BurnExport(Export):
         plt.savefig("data/burn_simulation/graphs/exit_pressure.png", dpi=200)
 
         plt.figure(4, figsize=(16, 9))
-        plt.plot(self.time, self.free_volume, color="b", linewidth=0.75, label=r"$\forall_c$")
+        plt.plot(
+            self.time, self.free_volume, color="b", linewidth=0.75, label=r"$\forall_c$"
+        )
         plt.grid(True)
         plt.xlabel("time (s)")
         plt.ylabel("free volume (m³)")
@@ -670,18 +680,20 @@ class BurnExport(Export):
             plt.ylabel("tail of chamber pressure (pa)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Tail Off Chamber Pressure as function of time")
-            plt.savefig("data/burn_simulation/graphs/tail_off_chamber_pressure.png", dpi=200)
+            plt.savefig(
+                "data/burn_simulation/graphs/tail_off_chamber_pressure.png", dpi=200
+            )
 
         return None
 
 
 if __name__ == "__main__":
-   """Burn definitions"""
-   Grao_Leviata = Grain(
+    """Burn definitions"""
+    Grao_Leviata = Grain(
         outer_radius=71.92 / 2000,
         initial_inner_radius=31.92 / 2000,
     )
-   Leviata = Motor(
+    Leviata = Motor(
         Grao_Leviata,
         grain_number=4,
         chamber_inner_radius=77.92 / 2000,
@@ -690,24 +702,24 @@ if __name__ == "__main__":
         nozzle_angle=15 * np.pi / 180,
         chamber_length=600 / 1000,
     )
-   KNSB = Propellant(
+    KNSB = Propellant(
         specific_heat_ratio=1.1361,
         density=1700,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
         # burn_rate_a=5.13,
         # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/test_emp2.csv",
+        interpolation_list="data/burnrate/test_emp.csv",
     )
 
-   Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
+    Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
 
-   """Class instances"""
-   Simulation = BurnSimulation(
+    """Class instances"""
+    Simulation = BurnSimulation(
         Grao_Leviata, Leviata, KNSB, Ambient, tail_off_evaluation=True
     )
-   ExportPlot = BurnExport(Simulation)
+    ExportPlot = BurnExport(Simulation)
 
-   """Desired outputs"""
-   ExportPlot.all_info()
-   ExportPlot.plotting()
+    """Desired outputs"""
+    ExportPlot.all_info()
+    ExportPlot.plotting()

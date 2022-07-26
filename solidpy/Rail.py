@@ -233,7 +233,11 @@ class RailExport(Export):
         """
         plt.figure(1, figsize=(16, 9))
         plt.plot(
-            self.Rail.time, self.Rail.velocity, color="orange", linewidth=0.75, label=r"$v_{rail}$"
+            self.Rail.time,
+            self.Rail.velocity,
+            color="orange",
+            linewidth=0.75,
+            label=r"$v_{rail}$",
         )
         plt.grid(True)
         plt.xlabel("time (s)")
@@ -244,7 +248,11 @@ class RailExport(Export):
 
         plt.figure(2, figsize=(16, 9))
         plt.plot(
-            self.Rail.time, self.Rail.position, color="orange", linewidth=0.75, label=r"$s_{rail}$"
+            self.Rail.time,
+            self.Rail.position,
+            color="orange",
+            linewidth=0.75,
+            label=r"$s_{rail}$",
         )
         plt.grid(True)
         plt.xlabel("time (s)")

@@ -71,8 +71,8 @@ class Export:
         sum = 0
         index = 0
         for thrust in thrust_list:
-            if thrust >=0:
+            if thrust >= 0:
                 sum += thrust
                 index += 1
-        
-        return sum/index
+
+        return sum / index
