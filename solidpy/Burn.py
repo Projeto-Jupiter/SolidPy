@@ -29,6 +29,8 @@ class Burn:
         self.gravity = environment.gravity
         self.environment_pressure = environment.atmospheric_pressure
 
+        self.initial_propellant_volume = self.motor.propellant_volume
+
         self.parameters = self.set_parameters()
 
     def set_parameters(self):
@@ -211,8 +213,7 @@ class Burn:
         """
         specific_impulse = self.evaluate_total_impulse(thrust_list, time_list) / (
             self.propellant.density
-            * self.grain.initial_volume
-            * self.motor.grain_number
+            * self.initial_propellant_volume
             * self.environment.standard_gravity
         )
         return specific_impulse
@@ -290,7 +291,10 @@ class BurnSimulation(Burn):
         burn_rate = self.propellant.evaluate_burn_rate(chamber_pressure)
 
         vector_state = [
-            (burn_area * burn_rate * (rho_g - chamber_pressure / (R * T_0)) - nozzle_mass_flow)
+            (
+                burn_area * burn_rate * (rho_g - chamber_pressure / (R * T_0))
+                - nozzle_mass_flow
+            )
             * R
             * T_0
             / free_volume,
@@ -343,8 +347,8 @@ class BurnSimulation(Burn):
             method="DOP853",
             events=end_burn_propellant,
             max_step=self.max_step_size,
-            #atol=1e-8,
-            #rtol=1e-10,
+            # atol=1e-8,
+            # rtol=1e-10,
         )
 
         return solution
@@ -563,8 +567,7 @@ class BurnExport(Export):
         )
 
         self.propellant_mass = (
-            self.BurnSimulation.motor.grain_number
-            * self.BurnSimulation.motor.grain.initial_volume
+            self.BurnSimulation.initial_propellant_volume
             * self.BurnSimulation.propellant.density
         )
 
@@ -699,17 +702,17 @@ if __name__ == "__main__":
         density=1700,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
-        #burn_rate_a=5.13,
-        #burn_rate_n=0.22,
+        # burn_rate_a=5.13,
+        # burn_rate_n=0.22,
         interpolation_list="data/burnrate/KNSB.csv",
         # interpolation_list="data/burnrate/simulated/KNSB_Leviata_sim.csv",
     )
 
-    Ambient = None#Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
+    Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
 
     """Class instances"""
     Simulation = BurnSimulation(
-        Grao_Leviata, Leviata, KNSB, tail_off_evaluation=True
+        Grao_Leviata, Leviata, KNSB, Ambient, tail_off_evaluation=True
     )
     ExportPlot = BurnExport(Simulation)
 

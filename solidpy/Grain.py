@@ -17,7 +17,6 @@ class Grain(ABC):
         self.initial_inner_radius = self.inner_radius
         self.height = height
         self.initial_height = self.height
-        self.initial_volume = self.volume
         self.mass = mass
         self.regressed_length = regressed_length
 
@@ -100,7 +99,8 @@ class Bates(Grain):
 
 
 class CustomGeometry(Grain):
-    def __init__(self, contour_mesh):
+    def __init__(self, outer_radius, inner_radius, height=None, regressed_length=0, mass=None):
+        super().__init__(outer_radius, inner_radius, height, regressed_length, mass)
         ...
 
     def set_parametric_contour(self):
