@@ -48,7 +48,7 @@ class BurnEmpirical(Burn):
         return self.propellant.density
 
     def evaluate_empirical_chamber_pressure(self):
-        """Computation of motors chamber pressure from user supplied
+        """Computation of motor's chamber pressure from user supplied
         thrust data.
 
         Source:

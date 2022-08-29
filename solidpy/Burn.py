@@ -12,7 +12,7 @@ from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
 
-from Grain import Grain
+from Grain import Bates, Grain
 from Propellant import Propellant
 from Motor import Motor
 from Environment import Environment
@@ -211,7 +211,7 @@ class Burn:
         """
         specific_impulse = self.evaluate_total_impulse(thrust_list, time_list) / (
             self.propellant.density
-            * self.grain.volume
+            * self.grain.initial_volume
             * self.motor.grain_number
             * self.environment.standard_gravity
         )
@@ -283,16 +283,14 @@ class BurnSimulation(Burn):
         chamber_pressure, free_volume, regressed_length = state_variables
         T_0, R, rho_g, _, _ = self.parameters
 
-        rho_0 = chamber_pressure / (R * T_0)  # product_gas_density
+        self.grain.burn_regress(regressed_length)
+
+        burn_area = self.motor.total_burn_area
         nozzle_mass_flow = self.evaluate_nozzle_mass_flow(chamber_pressure)
-        burn_area = (
-            self.motor.grain_number
-            * self.motor.grain.evaluate_tubular_burn_area(regressed_length)
-        )
         burn_rate = self.propellant.evaluate_burn_rate(chamber_pressure)
 
         vector_state = [
-            (burn_area * burn_rate * (rho_g - rho_0) - nozzle_mass_flow)
+            (burn_area * burn_rate * (rho_g - chamber_pressure / (R * T_0)) - nozzle_mass_flow)
             * R
             * T_0
             / free_volume,
@@ -330,8 +328,7 @@ class BurnSimulation(Burn):
             Returns:
                 integer: boolean integer as termination parameter
             """
-            chamber_pressure, free_volume, regressed_length = state_variables
-            if (self.motor.chamber_volume - free_volume < 1e-6) or (
+            if (self.motor.propellant_volume < 1e-6) or (
                 self.grain.inner_radius >= self.grain.outer_radius
             ):
                 return 0
@@ -345,9 +342,9 @@ class BurnSimulation(Burn):
             state_variables,
             method="DOP853",
             events=end_burn_propellant,
-            max_step=0.01,
-            atol=1e-8,
-            rtol=1e-10,
+            max_step=self.max_step_size,
+            #atol=1e-8,
+            #rtol=1e-10,
         )
 
         return solution
@@ -381,7 +378,7 @@ class BurnSimulation(Burn):
                 -R
                 * T_0
                 * A_t
-                / (self.initial_tail_off_free_volume * self.propellant.calc_cstar())
+                / (self.initial_tail_off_free_volume * self.propellant.evaluate_cstar())
                 * (time - self.initial_tail_off_time)
             )
         )
@@ -404,9 +401,7 @@ class BurnSimulation(Burn):
                 tail_off_time.append(time)
                 tail_off_chamber_pressure.append(chamber_pressure)
                 tail_off_free_volume.append(self.motor.chamber_volume)
-                tail_off_regressed_length.append(
-                    self.grain.outer_radius - self.grain.initial_inner_radius
-                )
+                tail_off_regressed_length.append(self.grain.regressed_length)
             else:
                 break
 
@@ -569,7 +564,7 @@ class BurnExport(Export):
 
         self.propellant_mass = (
             self.BurnSimulation.motor.grain_number
-            * self.BurnSimulation.motor.grain.volume
+            * self.BurnSimulation.motor.grain.initial_volume
             * self.BurnSimulation.propellant.density
         )
 
@@ -686,9 +681,9 @@ class BurnExport(Export):
 
 if __name__ == "__main__":
     """Burn definitions"""
-    Grao_Leviata = Grain(
+    Grao_Leviata = Bates(
         outer_radius=71.92 / 2000,
-        initial_inner_radius=31.92 / 2000,
+        inner_radius=31.92 / 2000,
     )
     Leviata = Motor(
         Grao_Leviata,
@@ -704,17 +699,17 @@ if __name__ == "__main__":
         density=1700,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
-        # burn_rate_a=5.13,
-        # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB3.csv",
+        #burn_rate_a=5.13,
+        #burn_rate_n=0.22,
+        interpolation_list="data/burnrate/KNSB.csv",
         # interpolation_list="data/burnrate/simulated/KNSB_Leviata_sim.csv",
     )
 
-    Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
+    Ambient = None#Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
 
     """Class instances"""
     Simulation = BurnSimulation(
-        Grao_Leviata, Leviata, KNSB, Ambient, tail_off_evaluation=True
+        Grao_Leviata, Leviata, KNSB, tail_off_evaluation=True
     )
     ExportPlot = BurnExport(Simulation)
 
