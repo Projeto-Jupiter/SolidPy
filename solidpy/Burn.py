@@ -12,7 +12,7 @@ from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
 
-from Grain import Bates, Grain
+from Grain import Bates, Star
 from Propellant import Propellant
 from Motor import Motor
 from Environment import Environment
@@ -284,7 +284,7 @@ class BurnSimulation(Burn):
         chamber_pressure, free_volume, regressed_length = state_variables
         T_0, R, rho_g, _, _ = self.parameters
 
-        self.grain.burn_regress(regressed_length)
+        self.grain.regressed_length = regressed_length
 
         burn_area = self.motor.total_burn_area
         nozzle_mass_flow = self.evaluate_nozzle_mass_flow(chamber_pressure)
@@ -332,8 +332,10 @@ class BurnSimulation(Burn):
             Returns:
                 integer: boolean integer as termination parameter
             """
-            if (self.motor.propellant_volume < 1e-6) or (
-                self.grain.inner_radius >= self.grain.outer_radius
+            if (
+                (self.motor.propellant_volume < 1e-6)
+                or (self.grain.inner_radius >= self.grain.outer_radius)
+                or (state_variables[1] >= self.motor.chamber_volume)
             ):
                 return 0
             return 1
@@ -688,8 +690,13 @@ if __name__ == "__main__":
         outer_radius=71.92 / 2000,
         inner_radius=31.92 / 2000,
     )
+    Star_Test = Star(
+        outer_radius=71.92 / 2000,
+        star_maximum=(71.92 / 2000) / 3 * (5 / 3),
+        star_minimum=(71.92 / 2000) / 9,
+    )
     Leviata = Motor(
-        Grao_Leviata,
+        Star_Test,
         grain_number=4,
         chamber_inner_radius=77.92 / 2000,
         nozzle_throat_radius=17.5 / 2000,
@@ -712,7 +719,7 @@ if __name__ == "__main__":
 
     """Class instances"""
     Simulation = BurnSimulation(
-        Grao_Leviata, Leviata, KNSB, Ambient, tail_off_evaluation=True
+        Star_Test, Leviata, KNSB, Ambient, tail_off_evaluation=True
     )
     ExportPlot = BurnExport(Simulation)
 
