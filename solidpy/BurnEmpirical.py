@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 from matplotlib.font_manager import FontProperties
 
-from Grain import Grain
+from Grain import Bates, Star
 from Motor import Motor
 from Environment import Environment
 from Propellant import Propellant
@@ -43,8 +43,8 @@ class BurnEmpirical(Burn):
         Returns:
             float: propellant density
         """
-        if self.grain.density is not None:
-            return self.grain.density
+        if self.grain.mass is not None:
+            return self.grain.mass / self.grain.volume
         return self.propellant.density
 
     def evaluate_empirical_chamber_pressure(self):
@@ -94,12 +94,9 @@ class BurnEmpirical(Burn):
         burn_rate_list = []
 
         # Initial conditions
-        free_volume = self.motor.evaluate_free_volume()
+        free_volume = self.motor.free_volume
         regressed_length = 0.0
-        burn_area = (
-            self.motor.grain_number
-            * self.motor.grain.evaluate_tubular_burn_area(regressed_length)
-        )
+        burn_area = self.motor.total_burn_area
 
         # Loop iteration - calculate burn_rate at each step
         for pressure_list_index, chamber_pressure in enumerate(
@@ -123,17 +120,14 @@ class BurnEmpirical(Burn):
             )
 
             burn_rate_list.append(burn_rate)
-            regressed_length += burn_rate * delta_time
+            self.grain.regressed_length += burn_rate * delta_time
 
             if (
-                regressed_length
+                self.grain.regressed_length
                 >= self.grain.outer_radius - self.grain.initial_inner_radius
             ):
                 break
-            burn_area = (
-                self.motor.grain_number
-                * self.motor.grain.evaluate_tubular_burn_area(regressed_length)
-            )
+            burn_area = self.motor.total_burn_area
             free_volume += burn_area * burn_rate * delta_time
 
         return burn_rate_list
@@ -332,12 +326,18 @@ class EmpiricalExport(Export):
 
 if __name__ == "__main__":
     """Burn definitions"""
-    Grao_Leviata = Grain(
+    Grao_Leviata = Bates(
         outer_radius=71.92 / 2000,
-        initial_inner_radius=31.92 / 2000,
+        inner_radius=31.92 / 2000,
+    )
+    Star_Test = Star(
+        outer_radius=71.92 / 2000,
+        star_maximum=(71.92 / 2000) / 3 * (5 / 3),
+        star_minimum=(71.92 / 2000) / 9 * 2,
+        star_points=4,
     )
     Leviata = Motor(
-        Grao_Leviata,
+        Star_Test,
         grain_number=4,
         chamber_inner_radius=77.92 / 2000,
         nozzle_throat_radius=17.5 / 2000,
@@ -368,7 +368,7 @@ if __name__ == "__main__":
     )
 
     Empirical_Simulation = BurnEmpirical(
-        Grao_Leviata, Leviata, KNSB, environment=Ambient, empirical_data=ext_data
+        Star_Test, Leviata, KNSB, environment=Ambient, empirical_data=ext_data
     )
     ExportPlot = EmpiricalExport(Empirical_Simulation)
 

@@ -12,6 +12,8 @@ import pylab as plt
 from abc import ABC, abstractmethod
 import scipy.interpolate as interpolate
 
+from Export import Export
+
 
 class Grain(ABC):
     def __init__(self, outer_radius, height=None, regressed_length=0, mass=None):
@@ -232,6 +234,33 @@ class CustomGeometry(Grain):
         ...
 
 
+class GrainExport(Export):
+    def __init__(self, grain):
+        self.grain = grain
+        ...
+
+    def plotting(self):
+        plt.figure(1, figsize=(16, 9))
+        self.grain.inner_contour
+        plt.gca().set_aspect(1)
+        plt.title("Grain regression from its zero level port")
+        plt.savefig("data/grain_regression/regression_steps.png", dpi=200)
+
+        plt.figure(2, figsize=(16, 9))
+        plt.plot()
+        plt.title("Contour length as a function of regression")
+        plt.savefig("data/grain_regression/contour_length.png")
+
+        plt.figure(3, figsize=(16, 9))
+        plt.plot()
+        plt.title("Transversal area as a function of regression")
+        plt.savefig("data/grain_regression/transversal_area.png")
+        ...
+
+    def animation(self):
+        ...
+
+
 if __name__ == "__main__":
     Grao_Leviata = Bates(outer_radius=71.92 / 2000, inner_radius=31.92 / 2000)
     print(Grao_Leviata.burn_area)
@@ -241,3 +270,5 @@ if __name__ == "__main__":
     Star_Test = Star(
         outer_radius=30 / 1000, star_maximum=50 / 3000, star_minimum=10 / 3000
     )
+
+    GrainExport(Star_Test).plotting()

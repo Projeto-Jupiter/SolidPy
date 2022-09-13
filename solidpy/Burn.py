@@ -4,7 +4,6 @@ _author_ = ""
 _copyright_ = ""
 _license_ = ""
 
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,7 +11,7 @@ from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
 
-from Grain import Bates, Star
+from Grain import Bates, Star, GrainExport
 from Propellant import Propellant
 from Motor import Motor
 from Environment import Environment
@@ -60,7 +59,7 @@ class Burn:
             chamber_pressure
             * A_t
             * np.sqrt(k / (R * T_0))
-            * math.pow((2 / (k + 1)), ((k + 1) / (2 * (k - 1))))
+            * np.power((2 / (k + 1)), ((k + 1) / (2 * (k - 1))))
         )
 
     def evaluate_exit_mach(self):
@@ -75,8 +74,8 @@ class Burn:
         """
         _, _, _, k, _ = self.parameters
         func = (
-            lambda mach_number: math.pow((k + 1) / 2, -(k + 1) / (2 * (k - 1)))
-            * math.pow((1 + (k - 1) / 2 * mach_number**2), (k + 1) / (2 * (k - 1)))
+            lambda mach_number: np.power((k + 1) / 2, -(k + 1) / (2 * (k - 1)))
+            * np.power((1 + (k - 1) / 2 * mach_number**2), (k + 1) / (2 * (k - 1)))
             / mach_number
             - self.motor.expansion_ratio
         )
@@ -96,7 +95,7 @@ class Burn:
             float: exit pressure for the specified chamber pressure
         """
         _, _, _, k, _ = self.parameters
-        self.exit_pressure = chamber_pressure * math.pow(
+        self.exit_pressure = chamber_pressure * np.power(
             (1 + (k - 1) / 2 * self.evaluate_exit_mach() ** 2), -k / (k - 1)
         )
         return self.exit_pressure
@@ -124,7 +123,7 @@ class Burn:
             float: exit velocity
         """
         _, R, _, k, _ = self.parameters
-        self.exit_velocity = self.evaluate_exit_mach() * math.sqrt(
+        self.exit_velocity = self.evaluate_exit_mach() * np.sqrt(
             k * R * self.evaluate_exit_temperature()
         )
         return self.exit_velocity
@@ -146,12 +145,12 @@ class Burn:
         """
         _, _, _, k, _ = self.parameters
         self.Cf = (
-            math.sqrt(
+            np.sqrt(
                 (2 * k**2 / (k - 1))
-                * math.pow(2 / (k + 1), (k + 1) / (k - 1))
+                * np.power(2 / (k + 1), (k + 1) / (k - 1))
                 * (
                     1
-                    - math.pow(
+                    - np.power(
                         self.evaluate_exit_pressure(chamber_pressure)
                         / chamber_pressure,
                         (k - 1) / k,
@@ -255,15 +254,21 @@ class BurnSimulation(Burn):
         tail_off_evaluation=True,
     ):
         Burn.__init__(self, grain, motor, propellant, environment)
+
+        # Solver control variables
         self.max_step_size = max_step_size
+        self.tail_off_evaluation = tail_off_evaluation
 
-        self.grain_burn_solution = self.evaluate_grain_burn_solution()
-        self.tail_off_solution = (
-            self.evaluate_tail_off_solution() if tail_off_evaluation else None
-        )
-        self.total_burn_solution = self.evaluate_complete_solution()
+        # Attributes to be calculated
+        self.time = None
+        self.chamber_pressure = None
+        self.free_volume = None
+        self.regressed_length = None
+        self.thrust = None
+        self.exit_pressure = None
+        self.exit_velocity = None
 
-    """Solver required functions"""
+        self.burn_solution = self.evaluate_grain_burn_solution()
 
     def vector_field(self, time, state_variables):
         """Generates the vector field of the corresponding simulations
@@ -304,6 +309,30 @@ class BurnSimulation(Burn):
 
         return vector_state
 
+    def burn_termination(self, time, state_variables):
+        """Establishment of solver terminal conditions. The simulation
+        ends if the grain is totally regressed (burnt) emptying the
+        combustion chamber.
+
+        Args:
+            time (float): independent current time variable
+            state_variables
+            (list): simulation state variables
+            to be solved
+
+        Returns:
+            integer: boolean integer as termination parameter
+        """
+        if (
+            (self.motor.propellant_volume < 1e-6)
+            or (self.grain.inner_radius >= self.grain.outer_radius)
+            or (state_variables[1] >= self.motor.chamber_volume)
+        ):
+            return 0
+        return 1
+
+    burn_termination.terminal = True
+
     def solve_burn(self):
         """Initial conditions setting and solver instantiation.
 
@@ -318,42 +347,18 @@ class BurnSimulation(Burn):
             regressed_length,
         ]
 
-        def end_burn_propellant(time, state_variables):
-            """Establishment of solver terminal conditions. The simulation
-            ends if the grain is totally regressed (burnt) emptying the
-            combustion chamber.
-
-            Args:
-                time (float): independent current time variable
-                state_variables
-                (list): simulation state variables
-                to be solved
-
-            Returns:
-                integer: boolean integer as termination parameter
-            """
-            if (
-                (self.motor.propellant_volume < 1e-6)
-                or (self.grain.inner_radius >= self.grain.outer_radius)
-                or (state_variables[1] >= self.motor.chamber_volume)
-            ):
-                return 0
-            return 1
-
-        end_burn_propellant.terminal = True
-
-        solution = solve_ivp(
+        self.raw_solution = solve_ivp(
             self.vector_field,
             (0.0, 100.0),
             state_variables,
             method="DOP853",
-            events=end_burn_propellant,
+            events=self.burn_termination,
             max_step=self.max_step_size,
             # atol=1e-8,
             # rtol=1e-10,
         )
 
-        return solution
+        return None
 
     def solve_tail_off_regime(self):
         """Evaluates an analytical equation that describes the remaining
@@ -367,20 +372,14 @@ class BurnSimulation(Burn):
         T_0, R, _, _, A_t = self.parameters
 
         # Set initial values at the end of grain burn simulation
-        (
-            self.initial_tail_off_time,
-            self.initial_tail_off_chamber_pressure,
-            self.initial_tail_off_free_volume,
-        ) = (
-            self.grain_burn_solution[0][-1],
-            self.grain_burn_solution[1][-1],
-            self.grain_burn_solution[2][-1],
-        )
+        self.initial_tail_off_time = self.raw_solution.t[-1]
+        self.initial_tail_off_chamber_pressure = self.raw_solution.y[0][-1]
+        self.initial_tail_off_free_volume = self.raw_solution.y[1][-1]
 
         # Analytical solution to the fluid behavior after grain burn
         self.evaluate_tail_off_chamber_pressure = (
             lambda time: self.initial_tail_off_chamber_pressure
-            * math.exp(
+            * np.exp(
                 -R
                 * T_0
                 * A_t
@@ -396,123 +395,60 @@ class BurnSimulation(Burn):
             int((100.0 - self.initial_tail_off_time) / self.max_step_size),
         )
 
-        tail_off_time = []
-        tail_off_chamber_pressure = []
-        tail_off_free_volume = []
-        tail_off_regressed_length = []
+        self.tail_off_time = []
+        self.tail_off_chamber_pressure = []
+        self.tail_off_free_volume = []
+        self.tail_off_regressed_length = []
 
         for time in time_steps:
             chamber_pressure = self.evaluate_tail_off_chamber_pressure(time)
             if chamber_pressure / self.environment_pressure > 1.0001:
-                tail_off_time.append(time)
-                tail_off_chamber_pressure.append(chamber_pressure)
-                tail_off_free_volume.append(self.motor.chamber_volume)
-                tail_off_regressed_length.append(self.grain.regressed_length)
+                self.tail_off_time.append(time)
+                self.tail_off_chamber_pressure.append(chamber_pressure)
+                self.tail_off_free_volume.append(self.motor.chamber_volume)
+                self.tail_off_regressed_length.append(self.grain.regressed_length)
             else:
-                break
+                return None
 
-        self.tail_off_solution = [
-            tail_off_time,
-            tail_off_chamber_pressure,
-            tail_off_free_volume,
-            tail_off_regressed_length,
-        ]
-
-        return self.tail_off_solution
-
-    def process_solution(self, chamber_pressure_list):
+    def evaluate_grain_burn_solution(self):
         """Iteration through the solve_ivp solution in order to compute
         notable burn characteristics besides the state variables, such as thrust,
         exit pressure and exit velocity.
 
-        Args:
-            chamber_pressure_list (list): chamber pressure solution
-            evaluated by solve_ivp
-
         Returns:
             tuple: thrust, exit pressure and exit velocity lists
         """
-        thrust_list = []
-        exit_velocity_list = []
-        exit_pressure_list = []
 
-        for chamber_pressure in chamber_pressure_list:
-            thrust_list.append(self.evaluate_thrust(chamber_pressure))
-            exit_velocity_list.append(self.evaluate_exit_velocity())
-            exit_pressure_list.append(self.evaluate_exit_pressure(chamber_pressure))
+        self.solve_burn()
 
-        return thrust_list, exit_pressure_list, exit_velocity_list
+        if self.tail_off_evaluation:
+            self.solve_tail_off_regime()
+            np.append(self.raw_solution.t, self.tail_off_time)
+            np.append(self.raw_solution.y[0], self.tail_off_chamber_pressure)
+            np.append(self.raw_solution.y[1], self.tail_off_free_volume)
+            np.append(self.raw_solution.y[2], self.tail_off_regressed_length)
 
-    def evaluate_grain_burn_solution(self):
-        """Adapts solve_ivp results to a simple matrix containing each
-        burn characteristic.
+        self.time = self.raw_solution.t
+        self.chamber_pressure = self.raw_solution.y[0]
+        self.free_volume = self.raw_solution.y[1]
+        self.regressed_length = self.raw_solution.y[2]
+        self.thrust = self.evaluate_thrust(self.chamber_pressure)
+        self.exit_pressure = self.evaluate_exit_pressure(self.chamber_pressure)
+        self.exit_velocity = self.evaluate_exit_velocity()
 
-        Returns:
-            list: list containing the solution and added burn computations
-        """
-        grain_burn_solution = self.solve_burn()
-
-        grain_burn_solution = [
-            grain_burn_solution.t,
-            grain_burn_solution.y[0],
-            grain_burn_solution.y[1],
-            grain_burn_solution.y[2],
-            *self.process_solution(grain_burn_solution.y[0]),
-        ]
-
-        return grain_burn_solution
-
-    def evaluate_tail_off_solution(self):
-        """Adapts solve_ivp results to a simple matrix containing each
-        burn characteristic.
-
-        Returns:
-            list: list containing the solution and added burn computations
-        """
-        tail_off_solution = self.solve_tail_off_regime()
-        tail_off_solution = [
-            *tail_off_solution,
-            *self.process_solution(tail_off_solution[1]),
-        ]
-
-        return tail_off_solution
-
-    def evaluate_complete_solution(self):
-        """Groups both grain burn and tail-off solutions after processing.
-
-        Returns:
-            matrix: contains tail-off and grain burn regime
-        """
-        grain_solution = self.grain_burn_solution
-        tail_off_solution = self.tail_off_solution
-        total_burn_solution = []
-
-        if tail_off_solution:
-            for grain_parameter, tail_off_parameter in zip(
-                grain_solution, tail_off_solution
-            ):
-                total_burn_solution.append(
-                    np.append(grain_parameter, tail_off_parameter)
-                )
-        else:
-            for grain_parameter in grain_solution:
-                total_burn_solution.append(grain_parameter)
-
-        return total_burn_solution
-
-
-class BurnExport(Export):
-    def __init__(self, BurnSimulation):
-        self.BurnSimulation = BurnSimulation
-        (
+        return [
             self.time,
             self.chamber_pressure,
             self.free_volume,
             self.regressed_length,
             self.thrust,
             self.exit_pressure,
-            self.exit_velocity,
-        ) = self.BurnSimulation.total_burn_solution
+        ]
+
+
+class BurnExport(Export):
+    def __init__(self, BurnSimulation):
+        self.BurnSimulation = BurnSimulation
 
         self.burn_exporting()
         self.post_processing()
@@ -525,7 +461,7 @@ class BurnExport(Export):
         """
         try:
             Export.raw_simulation_data_export(
-                self.BurnSimulation.total_burn_solution,
+                self.BurnSimulation.burn_solution,
                 "data/burn_simulation/burn_data.csv",
                 [
                     "Time",
@@ -534,7 +470,6 @@ class BurnExport(Export):
                     "Regressed Length",
                     "Thrust",
                     "Exit Pressure",
-                    "Exit Velocity",
                 ],
             )
         except OSError as err:
@@ -554,18 +489,17 @@ class BurnExport(Export):
             self.end_regressed_length,
             self.max_thrust,
             self.max_exit_pressure,
-            self.max_exit_velocity,
         ) = Export.evaluate_max_variables_list(
-            self.BurnSimulation.total_burn_solution[0],
-            self.BurnSimulation.total_burn_solution[1:],
+            self.BurnSimulation.burn_solution[0],
+            self.BurnSimulation.burn_solution[1:],
         )
 
         self.total_impulse = self.BurnSimulation.evaluate_total_impulse(
-            self.thrust, self.time
+            self.BurnSimulation.thrust, self.BurnSimulation.time
         )
 
         self.specific_impulse = self.BurnSimulation.evaluate_specific_impulse(
-            self.thrust, self.time
+            self.BurnSimulation.thrust, self.BurnSimulation.time
         )
 
         self.propellant_mass = (
@@ -583,7 +517,11 @@ class BurnExport(Export):
         """
         print("Total Impulse: {:.2f} Ns".format(self.total_impulse))
         print("Max Thrust: {:.2f} N at {:.2f} s".format(*self.max_thrust))
-        print("Mean Thrust: {:.2f} N".format(Export.evaluate_mean(self.thrust)))
+        print(
+            "Mean Thrust: {:.2f} N".format(
+                Export.positive_mean(self.BurnSimulation.thrust)
+            )
+        )
         print(
             "Max Chamber Pressure: {:.2f} bar at {:.2f} s".format(
                 self.max_chamber_pressure[0] / 1e5, self.max_chamber_pressure[1]
@@ -591,12 +529,12 @@ class BurnExport(Export):
         )
         print(
             "Mean Chamber Pressure: {:.2f} bar".format(
-                Export.evaluate_mean(self.chamber_pressure) / 1e5
+                Export.positive_mean(self.BurnSimulation.chamber_pressure) / 1e5
             )
         )
         print("Propellant mass: {:.2f} g".format(1000 * self.propellant_mass))
         print("Specific Impulse: {:.2f} s".format(self.specific_impulse))
-        print("Burnout Time: {:.2f} s".format(self.time[-1]))
+        print("Burnout Time: {:.2f} s".format(self.BurnSimulation.time[-1]))
 
         return None
 
@@ -607,7 +545,13 @@ class BurnExport(Export):
             None
         """
         plt.figure(1, figsize=(16, 9))
-        plt.plot(self.time, self.thrust, color="b", linewidth=0.75, label=r"$F_T$")
+        plt.plot(
+            self.BurnSimulation.time,
+            self.BurnSimulation.thrust,
+            color="b",
+            linewidth=0.75,
+            label=r"$F_T$",
+        )
         plt.grid(True)
         plt.xlabel("time (s)")
         plt.ylabel("thrust (N)")
@@ -617,7 +561,11 @@ class BurnExport(Export):
 
         plt.figure(2, figsize=(16, 9))
         plt.plot(
-            self.time, self.chamber_pressure, color="b", linewidth=0.75, label=r"$p_c$"
+            self.BurnSimulation.time,
+            self.BurnSimulation.chamber_pressure,
+            color="b",
+            linewidth=0.75,
+            label=r"$p_c$",
         )
         plt.grid(True)
         plt.xlabel("time (s)")
@@ -628,7 +576,11 @@ class BurnExport(Export):
 
         plt.figure(3, figsize=(16, 9))
         plt.plot(
-            self.time, self.exit_pressure, color="b", linewidth=0.75, label=r"$p_e$"
+            self.BurnSimulation.time,
+            self.BurnSimulation.exit_pressure,
+            color="b",
+            linewidth=0.75,
+            label=r"$p_e$",
         )
         plt.grid(True)
         plt.xlabel("time (s)")
@@ -639,7 +591,11 @@ class BurnExport(Export):
 
         plt.figure(4, figsize=(16, 9))
         plt.plot(
-            self.time, self.free_volume, color="b", linewidth=0.75, label=r"$\forall_c$"
+            self.BurnSimulation.time,
+            self.BurnSimulation.free_volume,
+            color="b",
+            linewidth=0.75,
+            label=r"$\forall_c$",
         )
         plt.grid(True)
         plt.xlabel("time (s)")
@@ -650,8 +606,8 @@ class BurnExport(Export):
 
         plt.figure(5, figsize=(16, 9))
         plt.plot(
-            self.time,
-            self.regressed_length,
+            self.BurnSimulation.time,
+            self.BurnSimulation.regressed_length,
             color="b",
             linewidth=0.75,
             label=r"$\ell_{regr}$",
@@ -663,11 +619,11 @@ class BurnExport(Export):
         plt.title("Regressed Grain Length as function of time")
         plt.savefig("data/burn_simulation/graphs/regressed_length.png", dpi=200)
 
-        if self.BurnSimulation.tail_off_solution:
+        if self.BurnSimulation.tail_off_evaluation:
             plt.figure(6, figsize=(16, 9))
             plt.plot(
-                self.BurnSimulation.tail_off_solution[0],
-                self.BurnSimulation.tail_off_solution[1],
+                self.BurnSimulation.tail_off_time,
+                self.BurnSimulation.tail_off_chamber_pressure,
                 color="b",
                 linewidth=0.75,
                 label=r"$p^{toff}_c$",
@@ -686,14 +642,15 @@ class BurnExport(Export):
 
 if __name__ == "__main__":
     """Burn definitions"""
-    Grao_Leviata = Bates(
-        outer_radius=71.92 / 2000,
-        inner_radius=31.92 / 2000,
-    )
+    # Grao_Leviata = Bates(
+    #     outer_radius=71.92 / 2000,
+    #     inner_radius=31.92 / 2000,
+    # )
     Star_Test = Star(
         outer_radius=71.92 / 2000,
         star_maximum=(71.92 / 2000) / 3 * (5 / 3),
-        star_minimum=(71.92 / 2000) / 9,
+        star_minimum=(71.92 / 2000) / 9 * 2,
+        star_points=4,
     )
     Leviata = Motor(
         Star_Test,
@@ -709,9 +666,9 @@ if __name__ == "__main__":
         density=1700,
         products_molecular_mass=39.9e-3,
         combustion_temperature=1600,
-        # burn_rate_a=5.13,
-        # burn_rate_n=0.22,
-        interpolation_list="data/burnrate/KNSB.csv",
+        burn_rate_a=5.13,
+        burn_rate_n=0.22,
+        # interpolation_list="data/burnrate/KNSB.csv",
         # interpolation_list="data/burnrate/simulated/KNSB_Leviata_sim.csv",
     )
 
@@ -722,6 +679,7 @@ if __name__ == "__main__":
         Star_Test, Leviata, KNSB, Ambient, tail_off_evaluation=True
     )
     ExportPlot = BurnExport(Simulation)
+    GrainExport(Star_Test).plotting()
 
     """Desired outputs"""
     ExportPlot.all_info()
