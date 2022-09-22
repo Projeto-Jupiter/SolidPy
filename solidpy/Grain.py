@@ -7,10 +7,10 @@ _license_ = "x"
 import skfmm
 import numpy as np
 import pylab as plt
-
-# from typing import Callable
-from abc import ABC, abstractmethod
 import scipy.interpolate as interpolate
+
+from abc import ABC, abstractmethod
+from matplotlib import animation
 
 from Export import Export
 
@@ -39,11 +39,12 @@ class Grain(ABC):
     @regressed_length.setter
     def regressed_length(self, length):
         self._regressed_length = length
-        self.burn_regress(length)
+        if length:
+            self.burn_regress(length)
 
-    @abstractmethod
-    def burn_regress(self, regressed_length, burnrate):
-        pass
+    def burn_regress(self, regressed_length):
+        self._inner_radius = self.initial_inner_radius + regressed_length
+        self._height = self.initial_height - 2 * regressed_length
 
     @property
     @abstractmethod
@@ -92,10 +93,6 @@ class Bates(Grain):
         else:
             self._height = height
 
-    def burn_regress(self, regressed_length):
-        self._inner_radius = self.initial_inner_radius + regressed_length
-        self._height = self.initial_height - 2 * regressed_length
-
     @Grain.contour_length.getter
     def contour_length(self):
         return 2 * np.pi * self.inner_radius
@@ -105,90 +102,57 @@ class Bates(Grain):
         return np.pi * (self.outer_radius**2 - self.inner_radius**2)
 
 
-class Star(Grain):
+class MarchingGrain(Grain):
     def __init__(
         self,
         outer_radius,
-        star_maximum,
-        star_minimum,
-        star_points=5,
         height=None,
         regressed_length=0,
         mass=None,
         contour_number=25,
-        grid_refinement=1001,
+        grid_refinement=1000,
     ):
-
-        self.star_maximum = star_maximum
-        self.star_minimum = star_minimum
-        self.star_points = star_points
+        super().__init__(outer_radius, height, regressed_length, mass)
         self.contour_number = contour_number
         self.grid_refinement = grid_refinement
-        self.inner_radius = star_minimum
-        self.initial_inner_radius = star_minimum
-        super().__init__(outer_radius, height, regressed_length, mass)
 
-        self.inner_contour = self.set_inner_contour()
+        self.x_mesh, self.y_mesh = self.generate_grid()
+
+        self.inner_contour = self.evaluate_regression()
         (
             self.total_contour_length,
             self.total_contour_area,
         ) = self.evaluate_contour_properties()
 
-    @Grain.height.setter
-    def height(self, height):
-        if height is None:
-            self._height = (
-                3 * self.outer_radius + (self.star_maximum + self.star_minimum) / 2
-            )
-        else:
-            self._height = height
-
-    def set_inner_contour(self):
-
-        grid = np.linspace(
-            -self.outer_radius, self.outer_radius, self.grid_refinement + 1
-        ), np.linspace(-self.outer_radius, self.outer_radius, self.grid_refinement + 1)
-        x_mesh, y_mesh = np.meshgrid(*grid)
-
-        polar_radius = (x_mesh**2 + y_mesh**2) ** (1 / 2)
-        polar_angle = np.arctan2(y_mesh, x_mesh)
-
-        minimum_step = 2 * self.outer_radius / self.grid_refinement
-
-        inner_radius_zero_contour = (
-            polar_radius
-            - (self.star_maximum + self.star_minimum) / 2
-            - (self.star_maximum - self.star_minimum)
-            / 2
-            * np.sin(self.star_points * polar_angle)
+    def generate_grid(self):
+        partition, self.grid_step = np.linspace(
+            -self.outer_radius,
+            self.outer_radius,
+            self.grid_refinement + 1,
+            retstep=True,
         )
+        return np.meshgrid(partition, partition)
 
-        limit_outer_contour = x_mesh**2 + y_mesh**2 >= self.outer_radius**2
-        limit_inner_contour = (
-            polar_radius
-            < (self.star_maximum + self.star_minimum) / 2
-            + (self.star_maximum - self.star_minimum)
-            / 2
-            * np.sin(self.star_points * polar_angle)
-            - 10 * minimum_step
+    def bound_regression(self, contour):
+        radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
+        limit_outer_contour = radius >= self.outer_radius
+        limit_inner_contour = 2 * self.grid_step < -contour
+
+        contour = np.ma.MaskedArray(contour, limit_outer_contour)
+        contour = np.ma.MaskedArray(contour, limit_inner_contour)
+        return contour
+
+    def evaluate_regression(self):
+        # Create inner contour and bound its regression by masking
+        inner_contour = self.generate_inner_shape()
+        inner_contour = self.bound_regression(inner_contour)
+
+        # Calculate regression from contour
+        distance_grid = skfmm.distance(inner_contour, float(self.grid_step))
+        regression_contours = plt.contour(
+            self.x_mesh, self.y_mesh, distance_grid, self.contour_number
         )
-
-        inner_radius_zero_contour = np.ma.MaskedArray(
-            inner_radius_zero_contour, limit_outer_contour
-        )
-        inner_radius_zero_contour = np.ma.MaskedArray(
-            inner_radius_zero_contour, limit_inner_contour
-        )
-
-        distance_grid = skfmm.distance(inner_radius_zero_contour, minimum_step)
-
-        contours = plt.contour(x_mesh, y_mesh, distance_grid, self.contour_number)
-
-        return contours
-
-    def burn_regress(self, regressed_length):
-        self.inner_radius = self.initial_inner_radius + regressed_length
-        self._height = self.initial_height - 2 * regressed_length
+        return regression_contours
 
     def evaluate_contour_properties(self):
         length = []
@@ -201,9 +165,11 @@ class Star(Grain):
             length.append(np.sum((np.diff(x) ** 2 + np.diff(y) ** 2) ** (1 / 2)))
             area.append(np.abs(0.5 * np.sum(y[:-1] * np.diff(x) - x[:-1] * np.diff(y))))
 
+        self.regression_steps = regression_steps[: min(len(length), len(area))]
+
         return (
-            interpolate.interp1d(regression_steps[: len(length)], length, kind="cubic"),
-            interpolate.interp1d(regression_steps[: len(area)], area, kind="cubic"),
+            interpolate.interp1d(self.regression_steps, length, kind="cubic"),
+            interpolate.interp1d(self.regression_steps, area, kind="cubic"),
         )
 
     @Grain.contour_length.getter
@@ -216,49 +182,150 @@ class Star(Grain):
             self.regressed_length
         )
 
+    @abstractmethod
+    def generate_inner_shape(self):
+        pass
 
-class CustomGeometry(Grain):
+
+class Star(MarchingGrain):
     def __init__(
-        self, outer_radius, inner_radius, height=None, regressed_length=0, mass=None
+        self,
+        outer_radius,
+        star_maximum,
+        star_minimum,
+        star_points=5,
+        height=None,
+        regressed_length=0,
+        mass=None,
+        contour_number=25,
+        grid_refinement=1000,
     ):
-        super().__init__(outer_radius, inner_radius, height, regressed_length, mass)
-        ...
+        self.star_maximum = star_maximum
+        self.star_minimum = star_minimum
+        self.star_points = star_points
+        self.inner_radius = star_minimum
+        self.initial_inner_radius = star_minimum
 
-    def set_inner_contour(self):
-        ...
+        super().__init__(
+            outer_radius,
+            height,
+            regressed_length,
+            mass,
+            contour_number,
+            grid_refinement,
+        )
 
-    def evaluate_contour_length(self):
-        ...
+    @Grain.height.setter
+    def height(self, height):
+        if height is None:
+            self._height = (
+                3 * self.outer_radius + (self.star_maximum + self.star_minimum) / 2
+            )
+        else:
+            self._height = height
 
-    def evaluate_transversal_area(self):
-        ...
+    def generate_inner_shape(self):
+        radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
+        angle = np.arctan2(self.y_mesh, self.x_mesh)
+        standard_star_contour = (
+            radius
+            - (self.star_maximum + self.star_minimum) / 2
+            - (self.star_maximum - self.star_minimum)
+            / 2
+            * np.sin(self.star_points * angle)
+        )
+        return standard_star_contour
+
+
+class CustomGeometry(MarchingGrain):
+    def __init__(
+        self,
+        outer_radius,
+        inner_radius,
+        height,
+        input_method="polar",
+        regressed_length=0,
+        mass=None,
+        contour_number=25,
+        grid_refinement=1000,
+    ):
+        self.input_method = input_method
+        self.inner_radius = inner_radius
+
+        self.method_map = {
+            "polar": self.generate_polar,
+        }
+
+        super().__init__(
+            outer_radius,
+            height,
+            regressed_length,
+            mass,
+            contour_number,
+            grid_refinement,
+        )
+
+    @Grain.height.setter
+    def height(self, height):
+        self._height = height
+
+    def generate_polar(self):
+        radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
+        angle = np.arctan2(self.y_mesh, self.x_mesh)
+        self.initial_inner_radius = np.min(np.abs(self.inner_radius(angle)))
+        return radius - self.inner_radius(angle)
+
+    def generate_inner_shape(self):
+        try:
+            return self.method_map.get(self.input_method)()
+        except ValueError:
+            raise ("Check inner_radius input.")
 
 
 class GrainExport(Export):
     def __init__(self, grain):
         self.grain = grain
-        ...
 
     def plotting(self):
-        plt.figure(1, figsize=(16, 9))
-        self.grain.inner_contour
+        plt.figure(301, figsize=(16, 9))
+        plt.contour(self.grain.inner_contour)
         plt.gca().set_aspect(1)
         plt.title("Grain regression from its zero level port")
         plt.savefig("data/grain_regression/regression_steps.png", dpi=200)
 
-        plt.figure(2, figsize=(16, 9))
-        plt.plot()
+        plt.figure(302, figsize=(16, 9))
+        plt.plot(
+            self.grain.regression_steps,
+            self.grain.total_contour_length(self.grain.regression_steps),
+        )
         plt.title("Contour length as a function of regression")
         plt.savefig("data/grain_regression/contour_length.png")
 
-        plt.figure(3, figsize=(16, 9))
-        plt.plot()
+        plt.figure(303, figsize=(16, 9))
+        plt.plot(
+            self.grain.regression_steps,
+            self.grain.total_contour_area(self.grain.regression_steps),
+        )
         plt.title("Transversal area as a function of regression")
         plt.savefig("data/grain_regression/transversal_area.png")
-        ...
 
-    def animation(self):
-        ...
+    def animation(self, index):
+        contour = self.grain.inner_contour.collections[1:-1][index]
+        x = contour.get_paths()[0].vertices[:, 0]
+        y = contour.get_paths()[0].vertices[:, 1]
+        return plt.plot(x, y)
+
+    def export_animation(self):
+        figure = plt.figure()
+        anim = animation.FuncAnimation(
+            figure,
+            self.animation,
+            frames=len(self.grain.regression_steps),
+            interval=2000,
+        )
+        anim.save(
+            "data/grain_regression/animation.mp4", writer=animation.FFMpegWriter()
+        )
 
 
 if __name__ == "__main__":
@@ -272,3 +339,4 @@ if __name__ == "__main__":
     )
 
     GrainExport(Star_Test).plotting()
+    GrainExport(Star_Test).export_animation()

@@ -230,7 +230,7 @@ class EmpiricalExport(Export):
 
     def plotting(self):
         try:
-            plt.figure(1, figsize=(16, 9))
+            plt.figure(101, figsize=(16, 9))
             plt.plot(
                 self.BurnEmpirical.empirical_time_steps,
                 self.BurnEmpirical.empirical_thrust,
@@ -245,7 +245,7 @@ class EmpiricalExport(Export):
             plt.title("Empirical Thrust as function of time")
             plt.savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
 
-            plt.figure(2, figsize=(16, 9))
+            plt.figure(102, figsize=(16, 9))
             plt.plot(
                 self.BurnEmpirical.empirical_time_steps,
                 self.BurnEmpirical.empirical_chamber_pressure,
@@ -262,7 +262,7 @@ class EmpiricalExport(Export):
                 "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
             )
 
-            plt.figure(3, figsize=(16, 9))
+            plt.figure(103, figsize=(16, 9))
             plt.plot(
                 self.BurnEmpirical.empirical_time_steps[:-1],
                 self.BurnEmpirical.empirical_burn_rate,
@@ -277,7 +277,7 @@ class EmpiricalExport(Export):
             plt.title("Empirical Burn Rate as function of time")
             plt.savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
 
-            plt.figure(4, figsize=(16, 9))
+            plt.figure(104, figsize=(16, 9))
             plt.plot(
                 *self.pressurization_regression.linspace(100),
                 color="g",

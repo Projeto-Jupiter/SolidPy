@@ -230,7 +230,7 @@ class RailExport(Export):
         Returns:
             None
         """
-        plt.figure(1, figsize=(16, 9))
+        plt.figure(201, figsize=(16, 9))
         plt.plot(
             self.Rail.time,
             self.Rail.velocity,
@@ -245,7 +245,7 @@ class RailExport(Export):
         plt.title("Rail velocity as function of time")
         plt.savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
 
-        plt.figure(2, figsize=(16, 9))
+        plt.figure(202, figsize=(16, 9))
         plt.plot(
             self.Rail.time,
             self.Rail.position,

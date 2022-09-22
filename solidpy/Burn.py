@@ -11,7 +11,7 @@ from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
 
-from Grain import Bates, Star, GrainExport
+from Grain import Bates, Star, CustomGeometry, GrainExport
 from Propellant import Propellant
 from Motor import Motor
 from Environment import Environment
@@ -325,7 +325,10 @@ class BurnSimulation(Burn):
         """
         if (
             (self.motor.propellant_volume < 1e-6)
-            or (self.grain.inner_radius >= self.grain.outer_radius)
+            or (
+                self.grain.initial_inner_radius + self.grain.regressed_length
+                >= self.grain.outer_radius
+            )
             or (state_variables[1] >= self.motor.chamber_volume)
         ):
             return 0
@@ -534,7 +537,7 @@ class BurnExport(Export):
         )
         print("Propellant mass: {:.2f} g".format(1000 * self.propellant_mass))
         print("Specific Impulse: {:.2f} s".format(self.specific_impulse))
-        print("Burnout Time: {:.2f} s".format(self.BurnSimulation.time[-1]))
+        print("Burnout Time: {:.2f} s\n".format(self.BurnSimulation.time[-1]))
 
         return None
 
@@ -642,18 +645,54 @@ class BurnExport(Export):
 
 if __name__ == "__main__":
     """Burn definitions"""
-    # Grao_Leviata = Bates(
-    #     outer_radius=71.92 / 2000,
-    #     inner_radius=31.92 / 2000,
-    # )
-    Star_Test = Star(
+
+    Bates = Bates(
+        outer_radius=71.92 / 2000,
+        inner_radius=31.92 / 2000,
+    )
+
+    Star = Star(
         outer_radius=71.92 / 2000,
         star_maximum=(71.92 / 2000) / 3 * (5 / 3),
         star_minimum=(71.92 / 2000) / 9 * 2,
         star_points=4,
     )
-    Leviata = Motor(
-        Star_Test,
+
+    time = np.linspace(0, 2 * np.pi, 1001)
+
+    def radius(t):
+        r = 0.013984 + 0.005993 * np.sin(4 * t)
+        return r
+
+    Custom = CustomGeometry(
+        outer_radius=71.92 / 2000,
+        inner_radius=radius,
+        height=0.121864,
+        input_method="polar",
+    )
+
+    Leviata_Bates = Motor(
+        Bates,
+        grain_number=4,
+        chamber_inner_radius=77.92 / 2000,
+        nozzle_throat_radius=17.5 / 2000,
+        nozzle_exit_radius=44.44 / 2000,
+        nozzle_angle=15 * np.pi / 180,
+        chamber_length=600 / 1000,
+    )
+
+    Leviata_Star = Motor(
+        Star,
+        grain_number=4,
+        chamber_inner_radius=77.92 / 2000,
+        nozzle_throat_radius=17.5 / 2000,
+        nozzle_exit_radius=44.44 / 2000,
+        nozzle_angle=15 * np.pi / 180,
+        chamber_length=600 / 1000,
+    )
+
+    Leviata_Custom = Motor(
+        Custom,
         grain_number=4,
         chamber_inner_radius=77.92 / 2000,
         nozzle_throat_radius=17.5 / 2000,
@@ -675,12 +714,29 @@ if __name__ == "__main__":
     Ambient = Environment(latitude=-0.38390456, altitude=627, ellipsoidal_model=True)
 
     """Class instances"""
-    Simulation = BurnSimulation(
-        Star_Test, Leviata, KNSB, Ambient, tail_off_evaluation=True
+    Simulation_Bates = BurnSimulation(
+        Bates, Leviata_Bates, KNSB, Ambient, tail_off_evaluation=True
     )
-    ExportPlot = BurnExport(Simulation)
-    GrainExport(Star_Test).plotting()
+    Export_Bates = BurnExport(Simulation_Bates)
+
+    Simulation_Star = BurnSimulation(
+        Star, Leviata_Star, KNSB, Ambient, tail_off_evaluation=True
+    )
+    Export_Star = BurnExport(Simulation_Star)
+    GrainExport(Star).plotting()
+
+    Simulation_Custom = BurnSimulation(
+        Custom, Leviata_Custom, KNSB, Ambient, tail_off_evaluation=True
+    )
+    Export_Custom = BurnExport(Simulation_Custom)
+    GrainExport(Custom).plotting()
 
     """Desired outputs"""
-    ExportPlot.all_info()
-    ExportPlot.plotting()
+    Export_Bates.all_info()
+    Export_Bates.plotting()
+
+    Export_Star.all_info()
+    Export_Star.plotting()
+
+    Export_Custom.all_info()
+    Export_Custom.plotting()
