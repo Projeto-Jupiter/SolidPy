@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 
 from matplotlib.font_manager import FontProperties
 
-from Grain import Bates, Star
-from Motor import Motor
-from Environment import Environment
-from Propellant import Propellant
-from Burn import Burn
-from Export import Export
+from .Grain import Bates, Star
+from .Motor import Motor
+from .Environment import Environment
+from .Propellant import Propellant
+from .Burn import Burn
+from .Export import Export
 
 
 class BurnEmpirical(Burn):
@@ -27,6 +27,7 @@ class BurnEmpirical(Burn):
         propellant,
         environment=Environment(),
         empirical_data=None,
+        plotting=True
     ):
         Burn.__init__(self, grain, motor, propellant, environment)
         self.empirical_propellant_density = self.evaluate_propellant_density()
@@ -35,6 +36,8 @@ class BurnEmpirical(Burn):
         self.empirical_time_steps, self.empirical_thrust = empirical_data
         self.empirical_chamber_pressure = self.evaluate_empirical_chamber_pressure()
         self.empirical_burn_rate = self.evaluate_empirical_burn_rate()
+
+        self.export(plotting)
 
     def evaluate_propellant_density(self):
         """Method that overwrites propellant standard density for user
@@ -131,6 +134,12 @@ class BurnEmpirical(Burn):
             free_volume += burn_area * burn_rate * delta_time
 
         return burn_rate_list
+
+    def export(self, plotting):
+        data = EmpiricalExport(self)
+        data.all_info()
+        if plotting:
+            data.plotting()
 
 
 class EmpiricalExport(Export):
@@ -244,6 +253,7 @@ class EmpiricalExport(Export):
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Thrust as function of time")
             plt.savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
+            plt.close()
 
             plt.figure(102, figsize=(16, 9))
             plt.plot(
@@ -261,6 +271,7 @@ class EmpiricalExport(Export):
             plt.savefig(
                 "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
             )
+            plt.close()
 
             plt.figure(103, figsize=(16, 9))
             plt.plot(
@@ -276,6 +287,7 @@ class EmpiricalExport(Export):
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Burn Rate as function of time")
             plt.savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
+            plt.close()
 
             plt.figure(104, figsize=(16, 9))
             plt.plot(
@@ -317,6 +329,7 @@ class EmpiricalExport(Export):
                 "data/burn_simulation/graphs/empirical_burn_rate_to_pressure.png",
                 dpi=200,
             )
+            plt.close()
 
         except AttributeError:
             print(">>> Empirical data not found, empirical plots were not updated.\n")

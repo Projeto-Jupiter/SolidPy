@@ -27,6 +27,7 @@ import csv
 import math
 import warnings
 import time
+import skfmm
 
 import numpy as np
 from scipy import integrate
@@ -36,11 +37,11 @@ from scipy.integrate import solve_ivp
 import scipy.constants as const
 import matplotlib.pyplot as plt
 
-from .Grain import Grain
+from .Export import Export
+from .Grain import Bates, Star, CustomGeometry
 from .Motor import Motor
 from .Propellant import Propellant
 from .Burn import Burn, BurnSimulation
 from .BurnEmpirical import BurnEmpirical
 from .Environment import Environment
 from .Rail import Rail
-from .Export import Export

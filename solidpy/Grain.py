@@ -12,7 +12,7 @@ import scipy.interpolate as interpolate
 from abc import ABC, abstractmethod
 from matplotlib import animation
 
-from Export import Export
+from .Export import Export
 
 
 class Grain(ABC):
@@ -111,6 +111,7 @@ class MarchingGrain(Grain):
         mass=None,
         contour_number=25,
         grid_refinement=1000,
+        plotting=True,
     ):
         super().__init__(outer_radius, height, regressed_length, mass)
         self.contour_number = contour_number
@@ -123,6 +124,8 @@ class MarchingGrain(Grain):
             self.total_contour_length,
             self.total_contour_area,
         ) = self.evaluate_contour_properties()
+
+        self.export(plotting)
 
     def generate_grid(self):
         partition, self.grid_step = np.linspace(
@@ -185,6 +188,10 @@ class MarchingGrain(Grain):
     @abstractmethod
     def generate_inner_shape(self):
         pass
+
+    def export(self, plotting):
+        if plotting:
+            GrainExport(self).plotting()
 
 
 class Star(MarchingGrain):
@@ -292,6 +299,7 @@ class GrainExport(Export):
         plt.gca().set_aspect(1)
         plt.title("Grain regression from its zero level port")
         plt.savefig("data/grain_regression/regression_steps.png", dpi=200)
+        plt.close()
 
         plt.figure(302, figsize=(16, 9))
         plt.plot(
@@ -300,6 +308,7 @@ class GrainExport(Export):
         )
         plt.title("Contour length as a function of regression")
         plt.savefig("data/grain_regression/contour_length.png")
+        plt.close()
 
         plt.figure(303, figsize=(16, 9))
         plt.plot(
@@ -308,6 +317,7 @@ class GrainExport(Export):
         )
         plt.title("Transversal area as a function of regression")
         plt.savefig("data/grain_regression/transversal_area.png")
+        plt.close()
 
     def animation(self, index):
         contour = self.grain.inner_contour.collections[1:-1][index]
@@ -337,6 +347,3 @@ if __name__ == "__main__":
     Star_Test = Star(
         outer_radius=30 / 1000, star_maximum=50 / 3000, star_minimum=10 / 3000
     )
-
-    GrainExport(Star_Test).plotting()
-    GrainExport(Star_Test).export_animation()

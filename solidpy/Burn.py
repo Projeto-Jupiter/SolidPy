@@ -11,17 +11,17 @@ from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp, cumtrapz
 from matplotlib.font_manager import FontProperties
 
-from Grain import Bates, Star, CustomGeometry, GrainExport
-from Propellant import Propellant
-from Motor import Motor
-from Environment import Environment
-from Export import Export
+from .Grain import Bates, Star, CustomGeometry, GrainExport
+from .Propellant import Propellant
+from .Motor import Motor
+from .Environment import Environment
+from .Export import Export
 
 
 class Burn:
-    def __init__(self, grain, motor, propellant, environment=Environment()):
+    def __init__(self, motor, propellant, environment=Environment()):
         self.motor = motor
-        self.grain = grain
+        self.grain = motor.grain
         self.propellant = propellant
         self.environment = environment
 
@@ -246,14 +246,14 @@ class Burn:
 class BurnSimulation(Burn):
     def __init__(
         self,
-        grain,
         motor,
         propellant,
         environment=Environment(),
         max_step_size=0.01,
         tail_off_evaluation=True,
+        plotting=True,
     ):
-        Burn.__init__(self, grain, motor, propellant, environment)
+        Burn.__init__(self, motor, propellant, environment)
 
         # Solver control variables
         self.max_step_size = max_step_size
@@ -269,6 +269,9 @@ class BurnSimulation(Burn):
         self.exit_velocity = None
 
         self.burn_solution = self.evaluate_grain_burn_solution()
+
+        # Export configuration
+        self.export(plotting)
 
     def vector_field(self, time, state_variables):
         """Generates the vector field of the corresponding simulations
@@ -423,18 +426,24 @@ class BurnSimulation(Burn):
         """
 
         self.solve_burn()
-
-        if self.tail_off_evaluation:
-            self.solve_tail_off_regime()
-            np.append(self.raw_solution.t, self.tail_off_time)
-            np.append(self.raw_solution.y[0], self.tail_off_chamber_pressure)
-            np.append(self.raw_solution.y[1], self.tail_off_free_volume)
-            np.append(self.raw_solution.y[2], self.tail_off_regressed_length)
-
         self.time = self.raw_solution.t
         self.chamber_pressure = self.raw_solution.y[0]
         self.free_volume = self.raw_solution.y[1]
         self.regressed_length = self.raw_solution.y[2]
+
+        if self.tail_off_evaluation:
+            self.solve_tail_off_regime()
+            self.time = np.append(self.raw_solution.t, self.tail_off_time)
+            self.chamber_pressure = np.append(
+                self.raw_solution.y[0], self.tail_off_chamber_pressure
+            )
+            self.free_volume = np.append(
+                self.raw_solution.y[1], self.tail_off_free_volume
+            )
+            self.regressed_length = np.append(
+                self.raw_solution.y[2], self.tail_off_regressed_length
+            )
+
         self.thrust = self.evaluate_thrust(self.chamber_pressure)
         self.exit_pressure = self.evaluate_exit_pressure(self.chamber_pressure)
         self.exit_velocity = self.evaluate_exit_velocity()
@@ -447,6 +456,12 @@ class BurnSimulation(Burn):
             self.thrust,
             self.exit_pressure,
         ]
+
+    def export(self, plotting):
+        data = BurnExport(self)
+        data.all_info()
+        if plotting:
+            data.plotting()
 
 
 class BurnExport(Export):
@@ -547,6 +562,7 @@ class BurnExport(Export):
         Returns:
             None
         """
+
         plt.figure(1, figsize=(16, 9))
         plt.plot(
             self.BurnSimulation.time,
@@ -561,6 +577,7 @@ class BurnExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Thrust as function of time")
         plt.savefig("data/burn_simulation/graphs/thrust.png", dpi=200)
+        plt.close()
 
         plt.figure(2, figsize=(16, 9))
         plt.plot(
@@ -576,6 +593,7 @@ class BurnExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Chamber Pressure as function of time")
         plt.savefig("data/burn_simulation/graphs/chamber_pressure.png", dpi=200)
+        plt.close()
 
         plt.figure(3, figsize=(16, 9))
         plt.plot(
@@ -591,6 +609,7 @@ class BurnExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Exit Pressure as function of time")
         plt.savefig("data/burn_simulation/graphs/exit_pressure.png", dpi=200)
+        plt.close()
 
         plt.figure(4, figsize=(16, 9))
         plt.plot(
@@ -606,6 +625,7 @@ class BurnExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Free Volume as function of time")
         plt.savefig("data/burn_simulation/graphs/free_volume.png", dpi=200)
+        plt.close()
 
         plt.figure(5, figsize=(16, 9))
         plt.plot(
@@ -621,6 +641,7 @@ class BurnExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Regressed Grain Length as function of time")
         plt.savefig("data/burn_simulation/graphs/regressed_length.png", dpi=200)
+        plt.close()
 
         if self.BurnSimulation.tail_off_evaluation:
             plt.figure(6, figsize=(16, 9))
@@ -639,6 +660,7 @@ class BurnExport(Export):
             plt.savefig(
                 "data/burn_simulation/graphs/tail_off_chamber_pressure.png", dpi=200
             )
+            plt.close()
 
         return None
 
@@ -715,28 +737,13 @@ if __name__ == "__main__":
 
     """Class instances"""
     Simulation_Bates = BurnSimulation(
-        Bates, Leviata_Bates, KNSB, Ambient, tail_off_evaluation=True
+        Leviata_Bates, KNSB, Ambient, tail_off_evaluation=True
     )
-    Export_Bates = BurnExport(Simulation_Bates)
 
     Simulation_Star = BurnSimulation(
-        Star, Leviata_Star, KNSB, Ambient, tail_off_evaluation=True
+        Leviata_Star, KNSB, Ambient, tail_off_evaluation=True
     )
-    Export_Star = BurnExport(Simulation_Star)
-    GrainExport(Star).plotting()
 
     Simulation_Custom = BurnSimulation(
-        Custom, Leviata_Custom, KNSB, Ambient, tail_off_evaluation=True
+        Leviata_Custom, KNSB, Ambient, tail_off_evaluation=True
     )
-    Export_Custom = BurnExport(Simulation_Custom)
-    GrainExport(Custom).plotting()
-
-    """Desired outputs"""
-    Export_Bates.all_info()
-    Export_Bates.plotting()
-
-    Export_Star.all_info()
-    Export_Star.plotting()
-
-    Export_Custom.all_info()
-    Export_Custom.plotting()

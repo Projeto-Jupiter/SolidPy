@@ -11,8 +11,8 @@ from scipy import interpolate
 from scipy.integrate import solve_ivp
 from matplotlib.font_manager import FontProperties
 
-from Environment import Environment
-from Export import Export
+from .Environment import Environment
+from .Export import Export
 
 
 class Rail:
@@ -26,6 +26,7 @@ class Rail:
         rail_angle,
         thrust,
         frontal_area,
+        plotting=True,
     ):
         self.environment = environment
 
@@ -46,6 +47,8 @@ class Rail:
         # Differential equation solution
         (self.time, self.position, self.velocity) = self.solve_rail()
         self.end_rail_velocity = self.solve_rail()[2][-1]
+
+        self.export(plotting)
 
     def evaluate_frontal_area(self, frontal_area):
         """Frontal area computation from user input or cilindrical
@@ -190,6 +193,12 @@ class Rail:
 
         return self.solution
 
+    def export(self, plotting):
+        data = RailExport(self)
+        data.all_info()
+        if plotting:
+            data.plotting()
+
 
 class RailExport(Export):
     def __init__(self, Rail):
@@ -244,6 +253,7 @@ class RailExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Rail velocity as function of time")
         plt.savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
+        plt.close()
 
         plt.figure(202, figsize=(16, 9))
         plt.plot(
@@ -259,6 +269,7 @@ class RailExport(Export):
         plt.legend(prop=FontProperties(size=16))
         plt.title("Rail position as function of time")
         plt.savefig("data/rail_movement/graphs/rail_position.png", dpi=200)
+        plt.close()
 
         return None
 
