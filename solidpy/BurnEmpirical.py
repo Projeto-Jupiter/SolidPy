@@ -22,14 +22,14 @@ from .Export import Export
 class BurnEmpirical(Burn):
     def __init__(
         self,
-        grain,
         motor,
         propellant,
         environment=Environment(),
         empirical_data=None,
         plotting=True
     ):
-        Burn.__init__(self, grain, motor, propellant, environment)
+        Burn.__init__(self, motor, propellant, environment)
+        self.grain = motor.grain
         self.empirical_propellant_density = self.evaluate_propellant_density()
 
         """Empirical known results (e.g. static-fire)"""
@@ -381,7 +381,7 @@ if __name__ == "__main__":
     )
 
     Empirical_Simulation = BurnEmpirical(
-        Star_Test, Leviata, KNSB, environment=Ambient, empirical_data=ext_data
+        Leviata, KNSB, environment=Ambient, empirical_data=ext_data
     )
     ExportPlot = EmpiricalExport(Empirical_Simulation)
 

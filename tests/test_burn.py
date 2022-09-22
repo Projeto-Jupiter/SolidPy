@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from solidpy import (Grain, Propellant, Motor, Environment, Burn, BurnSimulation)
+from solidpy import (Bates, Propellant, Motor, Environment, Burn, BurnSimulation)
 
 
 class TestBurn:
@@ -17,7 +17,6 @@ class TestBurn:
         regressed_length,
         thrust,
         exit_pressure,
-        exit_velocity,
     ) = simulation_data
 
     """Test output simulation range and lenght"""
@@ -66,8 +65,8 @@ class TestBurn:
 
 """Rocket definitions"""
 
-Grao_Leviata = Grain(
-    outer_radius=71.92 / 2000, initial_inner_radius=31.92 / 2000, mass=700 / 1000
+Grao_Leviata = Bates(
+    outer_radius=71.92 / 2000, inner_radius=31.92 / 2000, mass=700 / 1000
 )
 Leviata = Motor(
     Grao_Leviata,
@@ -91,7 +90,7 @@ KNSB = Propellant(
 
 Ambient = Environment(101325, 1.25, -0.38390456)
 
-simulation_burn = BurnSimulation(Grao_Leviata, Leviata, KNSB, Ambient)
+simulation_burn = BurnSimulation(Leviata, KNSB, Ambient)
 
 """Static-fire data"""
 data_path = "data/static_fires/leviata_raw_data-1.csv"
