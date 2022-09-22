@@ -59,15 +59,13 @@ class Export:
             solution_writer = csv.writer(file_data)
             solution_writer.writerow(header_line)
 
-            for data_array in zip(
-                *data,
-            ):
+            for data_array in zip(*data):
                 solution_writer.writerow(data_array)
 
             return None
 
     @staticmethod
-    def evaluate_mean(data_list):
+    def positive_mean(data_list):
         """Calculates the mean value of a list ignoring negative spurious data.
 
         Args:

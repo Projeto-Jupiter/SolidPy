@@ -132,6 +132,29 @@ class Rail:
 
         return jacobian
 
+    def end_rail(self, time, state_variables, parameters):
+        """Establishment of solver terminal conditions. The simulation ends
+            if the rocket reaches the end of the rail, i.e. its position is
+            greater than the rail length.
+
+        Args:
+            time (float): independent current time variable
+            state_variables
+            state_variables (list): simulation state variables
+            to be solved
+            parameters (tuple): main constants for vector state
+        computation
+
+        Returns:
+            integer: boolean integer as termination parameter
+        """
+        position = state_variables[0]
+        if position >= self.rail_length:
+            return 0
+        return 1
+
+    end_rail.terminal = True
+
     def solve_rail(self):
         """Initial conditions setting and solver instatiation.
 
@@ -152,30 +175,6 @@ class Rail:
             self.thrust,
         ]
 
-        def end_rail(time, state_variables, parameters):
-            """Establishment of solver terminal conditions. The simulation ends
-             if the rocket reaches the end of the rail, i.e. its position is
-             greater than the rail length.
-
-            Args:
-                time (float): independent current time variable
-                state_variables
-                state_variables (list): simulation state variables
-                to be solved
-                parameters (tuple): main constants for vector state
-            computation
-
-            Returns:
-                integer: boolean integer as termination parameter
-            """
-            position = state_variables[0]
-            if position >= self.rail_length:
-                return 0
-            return 1
-
-        end_rail.terminal = True
-
-        """Solver"""
         solution = solve_ivp(
             self.vector_field,
             (0.0, 100.0),
@@ -183,7 +182,7 @@ class Rail:
             args=(parameters,),
             method="BDF",
             jac=self.evaluate_jacobian,
-            events=end_rail,
+            events=self.end_rail,
             max_step=0.001,
         )
 
@@ -231,7 +230,7 @@ class RailExport(Export):
         Returns:
             None
         """
-        plt.figure(1, figsize=(16, 9))
+        plt.figure(201, figsize=(16, 9))
         plt.plot(
             self.Rail.time,
             self.Rail.velocity,
@@ -246,7 +245,7 @@ class RailExport(Export):
         plt.title("Rail velocity as function of time")
         plt.savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
 
-        plt.figure(2, figsize=(16, 9))
+        plt.figure(202, figsize=(16, 9))
         plt.plot(
             self.Rail.time,
             self.Rail.position,
