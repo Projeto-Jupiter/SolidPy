@@ -5,7 +5,6 @@ _copyright_ = "MIT"
 _license_ = ""
 
 import numpy as np
-from .Grain import Grain
 
 
 class Motor:
@@ -16,6 +15,7 @@ class Motor:
         chamber_inner_radius,
         nozzle_throat_radius,
         nozzle_exit_radius,
+        nozzle_angle,
         chamber_length=None,
     ):
         self.grain = grain
@@ -24,6 +24,7 @@ class Motor:
         self.chamber_area = np.pi * chamber_inner_radius**2
         self.nozzle_throat_area = np.pi * nozzle_throat_radius**2
         self.nozzle_exit_area = np.pi * nozzle_exit_radius**2
+        self.nozzle_angle = nozzle_angle
         self.expansion_ratio = self.nozzle_exit_area / self.nozzle_throat_area
         self.evaluate_chamber_volume()
         self.evaluate_propellant_volume()

@@ -14,9 +14,9 @@ class Propellant:
     def __init__(
         self,
         specific_heat_ratio,
-        density,
         products_molecular_mass,
         combustion_temperature,
+        density=None,
         **kwargs
     ):
         self.specific_heat_ratio = specific_heat_ratio
@@ -43,7 +43,7 @@ class Propellant:
                     burn_rate_list.append(float(line[1]))
                     pressure_list.append(float(line[0]))
             r_function = interpolate.interp1d(
-                pressure_list, burn_rate_list, kind="linear"
+                pressure_list, burn_rate_list, kind="cubic", fill_value="extrapolate"
             )
             if chamber_pressure < 0:
                 return 0
@@ -56,7 +56,8 @@ class Propellant:
 
         else:
             raise TypeError(
-                "Missing arguments. You must pass either an `interpolation_list` path or scalar ballistic coefficients `burn_rate_a` and `burn_rate_n` arguments to Propellant class"
+                "Missing arguments. You must pass either an `interpolation_list` path or scalar ballistic "
+                "coefficients `burn_rate_a` and `burn_rate_n` arguments to Propellant class "
             )
 
     def calc_cstar(self):
