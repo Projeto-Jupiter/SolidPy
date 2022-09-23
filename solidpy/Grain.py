@@ -298,7 +298,7 @@ class GrainExport(Export):
         plt.contour(self.grain.inner_contour)
         plt.gca().set_aspect(1)
         plt.title("Grain regression from its zero level port")
-        plt.savefig("data/grain_regression/regression_steps.png", dpi=200)
+        plt.savefig("regression_steps.png", dpi=200)
         plt.close()
 
         plt.figure(302, figsize=(16, 9))
@@ -307,7 +307,7 @@ class GrainExport(Export):
             self.grain.total_contour_length(self.grain.regression_steps),
         )
         plt.title("Contour length as a function of regression")
-        plt.savefig("data/grain_regression/contour_length.png")
+        plt.savefig("contour_length.png")
         plt.close()
 
         plt.figure(303, figsize=(16, 9))
@@ -316,7 +316,7 @@ class GrainExport(Export):
             self.grain.total_contour_area(self.grain.regression_steps),
         )
         plt.title("Transversal area as a function of regression")
-        plt.savefig("data/grain_regression/transversal_area.png")
+        plt.savefig("transversal_area.png")
         plt.close()
 
     def animation(self, index):
@@ -334,7 +334,7 @@ class GrainExport(Export):
             interval=2000,
         )
         anim.save(
-            "data/grain_regression/animation.mp4", writer=animation.FFMpegWriter()
+            "animation.mp4", writer=animation.FFMpegWriter()
         )
 
 

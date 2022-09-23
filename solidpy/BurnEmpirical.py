@@ -208,7 +208,7 @@ class EmpiricalExport(Export):
                 )
                 * 1e3,
             ],
-            "data/burnrate/simulated/KNSB_Leviata_sim.csv",
+            "propellant_burnrate.csv",
             ["Chamber Pressure (MPa)", "Burn rate (mm/s)"],
         )
 
@@ -252,7 +252,7 @@ class EmpiricalExport(Export):
             plt.ylabel("thrust (N)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Thrust as function of time")
-            plt.savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
+            plt.savefig("empirical_thrust.png", dpi=200)
             plt.close()
 
             plt.figure(102, figsize=(16, 9))
@@ -269,7 +269,7 @@ class EmpiricalExport(Export):
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Chamber Pressure as function of time")
             plt.savefig(
-                "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
+                "empirical_chamber_pressure.png", dpi=200
             )
             plt.close()
 
@@ -286,7 +286,7 @@ class EmpiricalExport(Export):
             plt.ylabel("burn rate (m/s)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Burn Rate as function of time")
-            plt.savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
+            plt.savefig("empirical_burn_rate.png", dpi=200)
             plt.close()
 
             plt.figure(104, figsize=(16, 9))
@@ -326,7 +326,7 @@ class EmpiricalExport(Export):
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Burn Rate as function of chamber pressure")
             plt.savefig(
-                "data/burn_simulation/graphs/empirical_burn_rate_to_pressure.png",
+                "empirical_burn_rate_to_pressure.png",
                 dpi=200,
             )
             plt.close()

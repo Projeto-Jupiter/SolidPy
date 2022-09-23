@@ -480,7 +480,7 @@ class BurnExport(Export):
         try:
             Export.raw_simulation_data_export(
                 self.BurnSimulation.burn_solution,
-                "data/burn_simulation/burn_data.csv",
+                "burn_data.csv",
                 [
                     "Time",
                     "Chamber Pressure",
@@ -576,7 +576,7 @@ class BurnExport(Export):
         plt.ylabel("thrust (N)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Thrust as function of time")
-        plt.savefig("data/burn_simulation/graphs/thrust.png", dpi=200)
+        plt.savefig("thrust.png", dpi=200)
         plt.close()
 
         plt.figure(2, figsize=(16, 9))
@@ -592,7 +592,7 @@ class BurnExport(Export):
         plt.ylabel("chamber pressure (pa)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Chamber Pressure as function of time")
-        plt.savefig("data/burn_simulation/graphs/chamber_pressure.png", dpi=200)
+        plt.savefig("chamber_pressure.png", dpi=200)
         plt.close()
 
         plt.figure(3, figsize=(16, 9))
@@ -608,7 +608,7 @@ class BurnExport(Export):
         plt.ylabel("exit pressure (pa)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Exit Pressure as function of time")
-        plt.savefig("data/burn_simulation/graphs/exit_pressure.png", dpi=200)
+        plt.savefig("exit_pressure.png", dpi=200)
         plt.close()
 
         plt.figure(4, figsize=(16, 9))
@@ -624,7 +624,7 @@ class BurnExport(Export):
         plt.ylabel("free volume (m³)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Free Volume as function of time")
-        plt.savefig("data/burn_simulation/graphs/free_volume.png", dpi=200)
+        plt.savefig("free_volume.png", dpi=200)
         plt.close()
 
         plt.figure(5, figsize=(16, 9))
@@ -640,7 +640,7 @@ class BurnExport(Export):
         plt.ylabel("regressed length (m)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Regressed Grain Length as function of time")
-        plt.savefig("data/burn_simulation/graphs/regressed_length.png", dpi=200)
+        plt.savefig("regressed_length.png", dpi=200)
         plt.close()
 
         if self.BurnSimulation.tail_off_evaluation:
@@ -658,7 +658,7 @@ class BurnExport(Export):
             plt.legend(prop=FontProperties(size=16))
             plt.title("Tail Off Chamber Pressure as function of time")
             plt.savefig(
-                "data/burn_simulation/graphs/tail_off_chamber_pressure.png", dpi=200
+                "tail_off_chamber_pressure.png", dpi=200
             )
             plt.close()
 
