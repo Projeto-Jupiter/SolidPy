@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="SolidPy",
+    name="solidpy",
     install_requires=[
         "ambiance>=1.3.0",
         "matplotlib>=3.5.1",
