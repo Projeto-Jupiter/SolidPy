@@ -199,7 +199,7 @@ class EmpiricalExport(Export):
                 )
                 * 1e3,
             ],
-            "data/burnrate/simulated/KNSB_Leviata_sim.csv",
+            "../data/burnrate/simulated/KNSB_Leviata_sim.csv",
             ["Chamber Pressure (MPa)", "Burn rate (mm/s)"],
         )
 

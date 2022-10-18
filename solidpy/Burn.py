@@ -470,7 +470,7 @@ class BurnExport(Export):
         try:
             Export.raw_simulation_data_export(
                 self.BurnSimulation.burn_solution,
-                "data/burn_simulation/burn_data.csv",
+                "../data/burn_simulation/burn_data.csv",
                 [
                     "Time",
                     "Chamber Pressure",
@@ -480,7 +480,7 @@ class BurnExport(Export):
                     "Exit Pressure",
                 ],
             )
-        except OSError as err:
+        except FileNotFoundError as err:
             print("OS error: {0}".format(err))
         return None
 
