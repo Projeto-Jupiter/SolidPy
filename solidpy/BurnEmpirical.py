@@ -26,7 +26,6 @@ class BurnEmpirical(Burn):
         propellant,
         environment=Environment(),
         empirical_data=None,
-        plotting=True
     ):
         Burn.__init__(self, motor, propellant, environment)
         self.grain = motor.grain
@@ -36,8 +35,6 @@ class BurnEmpirical(Burn):
         self.empirical_time_steps, self.empirical_thrust = empirical_data
         self.empirical_chamber_pressure = self.evaluate_empirical_chamber_pressure()
         self.empirical_burn_rate = self.evaluate_empirical_burn_rate()
-
-        self.export(plotting)
 
     def evaluate_propellant_density(self):
         """Method that overwrites propellant standard density for user
@@ -134,12 +131,6 @@ class BurnEmpirical(Burn):
             free_volume += burn_area * burn_rate * delta_time
 
         return burn_rate_list
-
-    def export(self, plotting):
-        data = EmpiricalExport(self)
-        data.all_info()
-        if plotting:
-            data.plotting()
 
 
 class EmpiricalExport(Export):
@@ -252,7 +243,7 @@ class EmpiricalExport(Export):
             plt.ylabel("thrust (N)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Thrust as function of time")
-            plt.savefig("data/burn_simulation/graphs/empirical_thrust.png", dpi=200)
+            plt.show()
             plt.close()
 
             plt.figure(102, figsize=(16, 9))
@@ -268,9 +259,7 @@ class EmpiricalExport(Export):
             plt.ylabel("chamber pressure (pa)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Chamber Pressure as function of time")
-            plt.savefig(
-                "data/burn_simulation/graphs/empirical_chamber_pressure.png", dpi=200
-            )
+            plt.show()
             plt.close()
 
             plt.figure(103, figsize=(16, 9))
@@ -286,7 +275,7 @@ class EmpiricalExport(Export):
             plt.ylabel("burn rate (m/s)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Burn Rate as function of time")
-            plt.savefig("data/burn_simulation/graphs/empirical_burn_rate.png", dpi=200)
+            plt.show()
             plt.close()
 
             plt.figure(104, figsize=(16, 9))
@@ -325,10 +314,7 @@ class EmpiricalExport(Export):
             plt.ylabel("burn rate (m/s)")
             plt.legend(prop=FontProperties(size=16))
             plt.title("Empirical Burn Rate as function of chamber pressure")
-            plt.savefig(
-                "data/burn_simulation/graphs/empirical_burn_rate_to_pressure.png",
-                dpi=200,
-            )
+            plt.show()
             plt.close()
 
         except AttributeError:

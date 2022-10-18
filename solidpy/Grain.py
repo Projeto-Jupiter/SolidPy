@@ -111,7 +111,6 @@ class MarchingGrain(Grain):
         mass=None,
         contour_number=25,
         grid_refinement=1000,
-        plotting=True,
     ):
         super().__init__(outer_radius, height, regressed_length, mass)
         self.contour_number = contour_number
@@ -124,8 +123,6 @@ class MarchingGrain(Grain):
             self.total_contour_length,
             self.total_contour_area,
         ) = self.evaluate_contour_properties()
-
-        self.export(plotting)
 
     def generate_grid(self):
         partition, self.grid_step = np.linspace(

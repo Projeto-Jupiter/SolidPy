@@ -26,7 +26,6 @@ class Rail:
         rail_angle,
         thrust,
         frontal_area,
-        plotting=True,
     ):
         self.environment = environment
 
@@ -47,8 +46,6 @@ class Rail:
         # Differential equation solution
         (self.time, self.position, self.velocity) = self.solve_rail()
         self.end_rail_velocity = self.solve_rail()[2][-1]
-
-        self.export(plotting)
 
     def evaluate_frontal_area(self, frontal_area):
         """Frontal area computation from user input or cilindrical
@@ -192,12 +189,6 @@ class Rail:
         self.solution = [solution.t, solution.y[0], solution.y[1]]
 
         return self.solution
-
-    def export(self, plotting):
-        data = RailExport(self)
-        data.all_info()
-        if plotting:
-            data.plotting()
 
 
 class RailExport(Export):
