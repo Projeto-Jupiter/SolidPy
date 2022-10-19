@@ -144,7 +144,7 @@ class Burn:
             a given chamber pressure
         """
         _, _, _, k, _ = self.parameters
-        self.Cf = (
+        Cf = (
             np.sqrt(
                 (2 * k**2 / (k - 1))
                 * np.power(2 / (k + 1), (k + 1) / (k - 1))
@@ -166,7 +166,7 @@ class Burn:
             )
             * self.motor.expansion_ratio
         )
-        return self.Cf
+        return Cf * self.motor.nozzle_correction * self.motor.divergence_correction
 
     def evaluate_thrust(self, chamber_pressure):
         """Calculation of engine's thrust

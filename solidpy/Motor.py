@@ -16,6 +16,7 @@ class Motor:
         nozzle_throat_radius,
         nozzle_exit_radius,
         nozzle_angle,
+        nozzle_correction=0.9,
         chamber_length=None,
     ):
         self.grain = grain
@@ -26,6 +27,7 @@ class Motor:
         self.nozzle_throat_area = np.pi * nozzle_throat_radius**2
         self.nozzle_exit_area = np.pi * nozzle_exit_radius**2
         self.nozzle_angle = nozzle_angle
+        self.nozzle_correction = nozzle_correction
         self.expansion_ratio = self.nozzle_exit_area / self.nozzle_throat_area
 
     @property
@@ -53,9 +55,12 @@ class Motor:
 
     @property
     def Kn(self):
-        self.Kn = (self.grain_number * self.grain.burn_area) / self.nozzle_throat_area
-        return self.Kn
+        return self.total_burn_area / self.nozzle_throat_area
 
     @property
     def total_burn_area(self):
         return self.grain_number * self.grain.burn_area
+
+    @property
+    def divergence_correction(self):
+        return (1 + np.cos(self.nozzle_angle)) / 2
