@@ -5,12 +5,13 @@ _copyright_ = "MIT"
 _license_ = ""
 
 import numpy as np
+from .Grain import Grain
 
 
 class Motor:
     def __init__(
         self,
-        grain,
+        grain: Grain,
         grain_number,
         chamber_inner_radius,
         nozzle_throat_radius,
@@ -19,11 +20,15 @@ class Motor:
         nozzle_correction=0.9,
         chamber_length=None,
     ):
+        # Grain geometry and quantity
         self.grain = grain
-
         self.grain_number = grain_number
+
+        # Combustion Chamber characteristics
         self.transversal_area = np.pi * chamber_inner_radius**2
         self.chamber_length = chamber_length
+
+        # Nozzle parameters
         self.nozzle_throat_area = np.pi * nozzle_throat_radius**2
         self.nozzle_exit_area = np.pi * nozzle_exit_radius**2
         self.nozzle_angle = nozzle_angle
