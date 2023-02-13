@@ -117,6 +117,7 @@ class MarchingGrain(Grain):
         self.grid_refinement = grid_refinement
 
         self.x_mesh, self.y_mesh = self.generate_grid()
+        self.mesh_radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
 
         self.inner_contour = self.evaluate_regression()
         (
@@ -134,8 +135,7 @@ class MarchingGrain(Grain):
         return np.meshgrid(partition, partition)
 
     def bound_regression(self, contour):
-        radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
-        limit_outer_contour = radius >= self.outer_radius
+        limit_outer_contour = self.mesh_radius >= self.outer_radius
         limit_inner_contour = 2 * self.grid_step < -contour
 
         contour = np.ma.MaskedArray(contour, limit_outer_contour)
@@ -162,7 +162,9 @@ class MarchingGrain(Grain):
         for contour in self.inner_contour.collections[1:-1]:
             x = contour.get_paths()[0].vertices[:, 0]
             y = contour.get_paths()[0].vertices[:, 1]
+            # Sum line elements legths by Pythagoras
             length.append(np.sum((np.diff(x) ** 2 + np.diff(y) ** 2) ** (1 / 2)))
+            # Evaluate area from points by Green's Theorem
             area.append(np.abs(0.5 * np.sum(y[:-1] * np.diff(x) - x[:-1] * np.diff(y))))
 
         self.regression_steps = regression_steps[: min(len(length), len(area))]
@@ -185,10 +187,6 @@ class MarchingGrain(Grain):
     @abstractmethod
     def generate_inner_shape(self):
         pass
-
-    def export(self, plotting):
-        if plotting:
-            GrainExport(self).plotting()
 
 
 class Star(MarchingGrain):
@@ -229,10 +227,9 @@ class Star(MarchingGrain):
             self._height = height
 
     def generate_inner_shape(self):
-        radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
         angle = np.arctan2(self.y_mesh, self.x_mesh)
         standard_star_contour = (
-            radius
+            self.mesh_radius
             - (self.star_maximum + self.star_minimum) / 2
             - (self.star_maximum - self.star_minimum)
             / 2
@@ -274,10 +271,21 @@ class CustomGeometry(MarchingGrain):
         self._height = height
 
     def generate_polar(self):
-        radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
-        angle = np.arctan2(self.y_mesh, self.x_mesh)
-        self.initial_inner_radius = np.min(np.abs(self.inner_radius(angle)))
-        return radius - self.inner_radius(angle)
+        mesh_angle = np.arctan2(self.y_mesh, self.x_mesh)
+        input_radius = np.abs(self.inner_radius(mesh_angle))
+        self.initial_inner_radius = np.min(input_radius)
+        return self.mesh_radius - input_radius
+
+    def generate_parametric(self):
+        # radius = np.sqrt(self.x_mesh**2 + self.y_mesh**2)
+        # x, y = self.inner_radius(np.linspace())
+        Ellipsis
+
+    def generate_mesh(self):
+        x, y = self.inner_radius[:, 0], self.inner_radius[:, 1]
+        input_radius = np.sqrt(x**2 + y**2)
+        self.initial_inner_radius = np.min(np.sqrt(x**2 + y**2))
+        return self.mesh_radius - input_radius
 
     def generate_inner_shape(self):
         try:
@@ -295,7 +303,7 @@ class GrainExport(Export):
         plt.contour(self.grain.inner_contour)
         plt.gca().set_aspect(1)
         plt.title("Grain regression from its zero level port")
-        plt.savefig("data/grain_regression/regression_steps.png", dpi=200)
+        plt.show()
         plt.close()
 
         plt.figure(302, figsize=(16, 9))
@@ -304,7 +312,7 @@ class GrainExport(Export):
             self.grain.total_contour_length(self.grain.regression_steps),
         )
         plt.title("Contour length as a function of regression")
-        plt.savefig("data/grain_regression/contour_length.png")
+        plt.show()
         plt.close()
 
         plt.figure(303, figsize=(16, 9))
@@ -313,7 +321,7 @@ class GrainExport(Export):
             self.grain.total_contour_area(self.grain.regression_steps),
         )
         plt.title("Transversal area as a function of regression")
-        plt.savefig("data/grain_regression/transversal_area.png")
+        plt.show()
         plt.close()
 
     def animation(self, index):
@@ -330,9 +338,7 @@ class GrainExport(Export):
             frames=len(self.grain.regression_steps),
             interval=2000,
         )
-        anim.save(
-            "data/grain_regression/animation.mp4", writer=animation.FFMpegWriter()
-        )
+        anim.show()
 
 
 if __name__ == "__main__":
