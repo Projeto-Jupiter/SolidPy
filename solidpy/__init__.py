@@ -44,4 +44,4 @@ from .Propellant import Propellant
 from .Burn import Burn, BurnSimulation, BurnExport
 from .BurnEmpirical import BurnEmpirical, EmpiricalExport
 from .Environment import Environment
-from .Rail import Rail
+from .Rail import Rail, RailExport

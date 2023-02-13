@@ -205,7 +205,7 @@ class RailExport(Export):
         try:
             Export.raw_simulation_data_export(
                 self.Rail.solution,
-                "data/rail_movement/rail_data.csv",
+                "./rail_data.csv",
                 ["Time", "Position", "Velocity"],
             )
         except OSError as err:
@@ -243,7 +243,7 @@ class RailExport(Export):
         plt.ylabel("velocity (m/s)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Rail velocity as function of time")
-        plt.savefig("data/rail_movement/graphs/rail_velocity.png", dpi=200)
+        plt.show()
         plt.close()
 
         plt.figure(202, figsize=(16, 9))
@@ -259,7 +259,7 @@ class RailExport(Export):
         plt.ylabel("position (m)")
         plt.legend(prop=FontProperties(size=16))
         plt.title("Rail position as function of time")
-        plt.savefig("data/rail_movement/graphs/rail_position.png", dpi=200)
+        plt.show()
         plt.close()
 
         return None
