@@ -186,23 +186,6 @@ class EmpiricalExport(Export):
             1,
         )
 
-        Export.raw_simulation_data_export(
-            [
-                np.array(
-                    self.BurnEmpirical.empirical_chamber_pressure[
-                        : self.max_pressure_index
-                    ]
-                )
-                * 1e-6,
-                np.array(
-                    self.BurnEmpirical.empirical_burn_rate[: self.max_pressure_index]
-                )
-                * 1e3,
-            ],
-            "../data/burnrate/simulated/KNSB_Leviata_sim.csv",
-            ["Chamber Pressure (MPa)", "Burn rate (mm/s)"],
-        )
-
         return None
 
     def all_info(self):

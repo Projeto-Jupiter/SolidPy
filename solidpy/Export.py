@@ -53,7 +53,7 @@ class Export:
             None
         """
 
-        append_boolean = "a" if append else "w"
+        append_boolean = "a" if append else "w+"
 
         with open(filepath, append_boolean, newline="") as file_data:
             solution_writer = csv.writer(file_data)

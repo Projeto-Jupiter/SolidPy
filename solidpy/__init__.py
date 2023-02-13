@@ -41,7 +41,7 @@ from .Export import Export
 from .Grain import Bates, Star, CustomGeometry
 from .Motor import Motor
 from .Propellant import Propellant
-from .Burn import Burn, BurnSimulation
-from .BurnEmpirical import BurnEmpirical
+from .Burn import Burn, BurnSimulation, BurnExport
+from .BurnEmpirical import BurnEmpirical, EmpiricalExport
 from .Environment import Environment
 from .Rail import Rail
