@@ -9,11 +9,11 @@ from solidpy import (
     Propellant,
     Environment,
     Rail,
-    BurnSimulation
+    BurnSimulation,
+    Export
 )
 
 from solidpy.Burn import BurnExport
-from random import randint
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -49,31 +49,23 @@ class MplCanvas(FigureCanvasQTAgg):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowIcon(QtGui.QIcon('logo.png'))
+        self.setWindowIcon(QtGui.QIcon('logo.ico'))
         self.setWindowIconText("logo")
         self.setWindowTitle("SolidPy GUI")
 
         
         plot_thrust = MplCanvas(self, width=15, height=8)
-        plot_thrust.axes.plot([0,1,2,3,4], [10,1,20,3,40])
-        plot_thrust.axes.set_title('Thrust Curve')
-        plot_thrust.axes.set_ylabel('Thrust(N)')
-        plot_thrust.axes.set_xlabel('Time(s)')
+
 
         plot_pressure = MplCanvas(self, width=15, height=8)
-        plot_pressure.axes.plot([0,1,2,3,4], [1,50,32,34,40])
-        plot_pressure.axes.set_title('Pressure Curve')
-        plot_pressure.axes.set_ylabel('Pressure(bar)')
-        plot_pressure.axes.set_xlabel('Time(s)')
+
 
         plot_kn = MplCanvas(self, width=15, height=8)
-        plot_kn.axes.plot([0,1,2,3,4], [10,1,20,3,40])
         plot_kn.axes.set_title('Kn Curve')
         plot_kn.axes.set_ylabel('Kn')
         plot_kn.axes.set_xlabel('Time(s)')
 
         plot_mass = MplCanvas(self, width=15, height=8)
-        plot_mass.axes.plot([0,1,2,3,4], [1,50,32,34,40])
         plot_mass.axes.set_title('Mass Curve')
         plot_mass.axes.set_ylabel('Propellant Mass(kg)')
         plot_mass.axes.set_xlabel('Time(s)')
@@ -179,24 +171,35 @@ class MainWindow(QMainWindow):
         info_layout.addWidget(QLabel('ISP:'),2,0,Qt.AlignRight)
         info_layout.addWidget(QLabel('Burnout Time:'),0,2,Qt.AlignRight)
         info_layout.addWidget(QLabel('Propellant Mass:'),2,2,Qt.AlignRight)
-        info_layout.addWidget(QLabel('-'),0,1,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),2,1,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),0,3,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),2,3,Qt.AlignLeft)
+        total_impulse_output = QLabel('-')
+        info_layout.addWidget(total_impulse_output,0,1,Qt.AlignLeft)
+        ISP_output = QLabel('-')
+        info_layout.addWidget(ISP_output,2,1,Qt.AlignLeft)
+        burnout_time_output = QLabel('-')
+        info_layout.addWidget(burnout_time_output,0,3,Qt.AlignLeft)
+        propellant_mass_output = QLabel('-')
+        info_layout.addWidget(propellant_mass_output,2,3,Qt.AlignLeft)
         info_layout.addWidget(QLabel('Average Thrust:'),0,4,Qt.AlignRight)
         info_layout.addWidget(QLabel('Maximum Thrust:'),2,4,Qt.AlignRight)
         info_layout.addWidget(QLabel('Average Pressure:'),0,6,Qt.AlignRight)
         info_layout.addWidget(QLabel('Maximum Pressure:'),2,6,Qt.AlignRight)
-        info_layout.addWidget(QLabel('-'),0,5,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),2,5,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),0,7,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),2,7,Qt.AlignLeft)
+        average_thrust_output = QLabel('-')
+        info_layout.addWidget(average_thrust_output,0,5,Qt.AlignLeft)
+        maximum_thrust_output = QLabel('-')
+        info_layout.addWidget(maximum_thrust_output,2,5,Qt.AlignLeft)
+        average_pressure_output = QLabel('-')
+        info_layout.addWidget(average_pressure_output,0,7,Qt.AlignLeft)
+        maximum_pressure_output = QLabel('-')
+        info_layout.addWidget(maximum_pressure_output,2,7,Qt.AlignLeft)
         info_layout.addWidget(QLabel('Expansion Ratio:'),0,8,Qt.AlignRight)
         info_layout.addWidget(QLabel('Port/Throat Ratio:'),2,8,Qt.AlignRight)
-        info_layout.addWidget(QLabel('-'),0,9,Qt.AlignLeft)
-        info_layout.addWidget(QLabel('-'),2,9,Qt.AlignLeft)
+        expansion_ratio_output = QLabel('-')
+        info_layout.addWidget(expansion_ratio_output,0,9,Qt.AlignLeft)
+        port_throat_ratio_output = QLabel('-')
+        info_layout.addWidget(port_throat_ratio_output,2,9,Qt.AlignLeft)
 
         def run():
+
             KNSB = Propellant(
             specific_heat_ratio=ast.literal_eval(self.specific_heat_ratio_input.text()),
             density=ast.literal_eval(self.density_input.text()),
@@ -224,7 +227,40 @@ class MainWindow(QMainWindow):
             Simulation = BurnSimulation(Leviata, KNSB)
             SimulationData = BurnExport(Simulation)
             SimulationData.all_info()
-            SimulationData.plotting()
+
+            time_array = Simulation.time
+            thrust_array = Simulation.thrust
+            pressure_array = Simulation.chamber_pressure
+            for i,pressure in enumerate(pressure_array):
+                pressure_array[i] = pressure*1e-5
+
+            plot_thrust.axes.clear()
+            plot_thrust.axes.set_title('Thrust Curve')
+            plot_thrust.axes.set_ylabel('Thrust(N)')
+            plot_thrust.axes.set_xlabel('Time(s)')
+            plot_thrust.axes.plot(time_array, thrust_array)
+            plot_thrust.axes.grid()
+            plot_thrust.draw()
+
+            plot_pressure.axes.clear()
+            plot_pressure.axes.set_title('Pressure Curve')
+            plot_pressure.axes.set_ylabel('Pressure(bar)')
+            plot_pressure.axes.set_xlabel('Time(s)')
+            plot_pressure.axes.plot(time_array, pressure_array)
+            plot_pressure.axes.grid()
+            plot_pressure.draw()
+
+            total_impulse_output.setText("{:.0f}Ns".format(Simulation.evaluate_total_impulse(thrust_array,time_array)))
+            ISP_output.setText("{:.0f}s".format(Simulation.evaluate_specific_impulse(thrust_array,time_array)))
+            burnout_time_output.setText("{:.2f}s".format(time_array[-1]))
+            propellant_mass_output.setText("{:.2f}kg".format(Simulation.initial_propellant_volume*Simulation.propellant.density))
+            average_thrust_output.setText("{:.0f}N".format(Export.positive_mean(thrust_array)))
+            maximum_thrust_output.setText("{:.0f}N at {:.2f}s".format(*SimulationData.max_thrust))
+            average_pressure_output.setText("{:.2f}bar".format(Export.positive_mean(pressure_array)))
+            maximum_pressure_output.setText("{:.2f}bar at {:.2f}s".format(SimulationData.max_chamber_pressure[0]*1e-5,SimulationData.max_chamber_pressure[1]))
+            expansion_ratio_output.setText("{:.2f}".format((ast.literal_eval(self.nozzle_exit_diameter_input.text())/ast.literal_eval(self.nozzle_throat_diameter_input.text()))**2))
+            port_throat_ratio_output.setText("{:.2f}".format((ast.literal_eval(self.initial_inner_diameter_input.text())/ast.literal_eval(self.nozzle_throat_diameter_input.text()))**2))
+
 
 
         input_layout.addWidget(information_tabs)
@@ -244,15 +280,6 @@ class MainWindow(QMainWindow):
         widget.setLayout(pagelayout)
         self.setCentralWidget(widget)
 
-
-
-time = list(np.zeros(200))  # 100 time points
-thrust = list(np.zeros(200))  # 100 data points
-pressure = list(np.zeros(200))  # 100 data points
-for element in thrust:
-    element =  randint(0,3000)
-for element in pressure:
-    element =  randint(0,100)
 
 app = QApplication(sys.argv)
 
