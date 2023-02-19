@@ -10,7 +10,8 @@ from solidpy import (
     Environment,
     Rail,
     BurnSimulation,
-    Export
+    Export,
+    StructuralCasing
 )
 
 from solidpy.Burn import BurnExport
@@ -34,6 +35,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QWidget,
     QLineEdit,
+    QComboBox,
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -53,30 +55,23 @@ class MainWindow(QMainWindow):
         self.setWindowIconText("logo")
         self.setWindowTitle("SolidPy GUI")
 
-        
+        #creating plots
         plot_thrust = MplCanvas(self, width=15, height=8)
-
-
         plot_pressure = MplCanvas(self, width=15, height=8)
-
-
         plot_kn = MplCanvas(self, width=15, height=8)
-        plot_kn.axes.set_title('Kn Curve')
-        plot_kn.axes.set_ylabel('Kn')
-        plot_kn.axes.set_xlabel('Time(s)')
-
         plot_mass = MplCanvas(self, width=15, height=8)
-        plot_mass.axes.set_title('Mass Curve')
-        plot_mass.axes.set_ylabel('Propellant Mass(kg)')
-        plot_mass.axes.set_xlabel('Time(s)')
 
+
+        #creating tabs
         information_tabs = QTabWidget()
-
+    
         Propellant_Widget = QWidget()
         Grain_Widget = QWidget()
         Motor_Widget = QWidget()
-        Structure_Widget = QWidget()
+        Casing_Widget = QWidget()
 
+        #creating tabs layouts
+        #propellant tab
         Propellant_Layout = QGridLayout(Propellant_Widget)
 
         Propellant_Layout.addWidget(QLabel('Specific Heat Ratio:'),0,0,Qt.AlignRight)
@@ -103,6 +98,7 @@ class MainWindow(QMainWindow):
         self.burn_rate_n_factor_input = QLineEdit('0.22')
         Propellant_Layout.addWidget(self.burn_rate_n_factor_input,5,1,Qt.AlignLeft)
 
+        #grain tab
         Grain_Layout = QGridLayout(Grain_Widget)
 
         Grain_Layout.addWidget(QLabel('Initial inner diameter(mm):'),0,0,Qt.AlignRight)
@@ -121,6 +117,7 @@ class MainWindow(QMainWindow):
         self.number_input = QLineEdit('4')
         Grain_Layout.addWidget(self.number_input,3,1,Qt.AlignLeft)
 
+        #motor tab
         Motor_Layout = QGridLayout(Motor_Widget)
 
         Motor_Layout.addWidget(QLabel('Chamber Inner Diameter(mm):'),0,0,Qt.AlignRight)
@@ -143,14 +140,57 @@ class MainWindow(QMainWindow):
         self.chamber_lenght_input = QLineEdit('600')
         Motor_Layout.addWidget(self.chamber_lenght_input,5,1,Qt.AlignLeft)
 
+        #casing tab
+        Casing_Layout = QGridLayout(Casing_Widget)
+
+        Casing_Layout.addWidget(QLabel('Ultimate Tensile Strenght(MPa):'),0,0,Qt.AlignRight)
+        self.ultimate_tensile_strength_input = QLineEdit('500')
+        Casing_Layout.addWidget(self.ultimate_tensile_strength_input,0,1,Qt.AlignLeft)
+
+        Casing_Layout.addWidget(QLabel('Yield Strength(MPa):'),1,0,Qt.AlignRight)
+        self.yield_strength_input = QLineEdit('300')
+        Casing_Layout.addWidget(self.yield_strength_input,1,1,Qt.AlignLeft)
+
+        Casing_Layout.addWidget(QLabel('Shear Modulus(MPa):'),2,0,Qt.AlignRight)
+        self.shear_modulus_input = QLineEdit('100')
+        Casing_Layout.addWidget(self.shear_modulus_input,2,1,Qt.AlignLeft)
+
+        Casing_Layout.addWidget(QLabel('Bearing Strength(MPa):'),3,0,Qt.AlignRight)
+        self.bearing_strength_input = QLineEdit('100')
+        Casing_Layout.addWidget(self.bearing_strength_input,3,1,Qt.AlignLeft)
+
+        Casing_Layout.addWidget(QLabel('Casing inner diameter(mm):'),4,0,Qt.AlignRight)
+        self.casing_inner_diameter_input = QLineEdit('77.92')
+        Casing_Layout.addWidget(self.casing_inner_diameter_input,4,1,Qt.AlignLeft)
         
+        Casing_Layout.addWidget(QLabel('Wall thickness(mm):'),5,0,Qt.AlignRight)
+        self.wall_thickness_input = QLineEdit('3')
+        Casing_Layout.addWidget(self.wall_thickness_input,5,1,Qt.AlignLeft)
 
-        Structure_Layout = QVBoxLayout(Structure_Widget)
+        Casing_Layout.addWidget(QLabel('Edge distance(mm):'),6,0,Qt.AlignRight)
+        self.edge_distance_input = QLineEdit('3')
+        Casing_Layout.addWidget(self.edge_distance_input,6,1,Qt.AlignLeft)
 
+        Casing_Layout.addWidget(QLabel('Bolts number:'),7,0,Qt.AlignRight)
+        self.bolts_number_input = QLineEdit('4')
+        Casing_Layout.addWidget(self.bolts_number_input,7,1,Qt.AlignLeft)
+
+        Casing_Layout.addWidget(QLabel('Edge distance(mm):'),8,0,Qt.AlignRight)
+        self.edge_distance_input = QLineEdit('3')
+        Casing_Layout.addWidget(self.edge_distance_input,8,1,Qt.AlignLeft)
+
+        Casing_Layout.addWidget(QLabel('Bolt type:'),9,0,Qt.AlignRight)
+        self.bolt_types_widget = QComboBox()
+        self.bolt_types_widget.addItems(['M5x0.5', 'M5x0.8', 'M5.5x0.5', 'M6x0.75', 'M6x1', 'M7x0.75', 'M7x1', 'M8x0.75', 'M8x1', 'M8x1.25'])
+        Casing_Layout.addWidget(self.bolt_types_widget,9,1,Qt.AlignLeft)
+        self.minor_bolt_diameter_dict = {'M5x0.8':4.134,'M5x0.5':4.459,'M5.5x0.5':4.959,'M6x0.75':5.188,'M6x1':4.917,'M7x0.75':6.188,'M7x1':5.917,'M8x0.75':7.188,'M8x1':6.917,'M8x1.25':6.647} 
+        self.major_bolt_diameter_dict = {'M5x0.5':5,'M5x0.8':5,'M5.5x0.5':5.5,'M6x0.75':6,'M6x1':6,'M7x0.75':7,'M7x1':7,'M8x0.75':8,'M8x1':8,'M8x1.25':8}
+
+        #output tabs
         information_tabs.addTab(Propellant_Widget, 'Propellant')
         information_tabs.addTab(Grain_Widget, 'Grain')
         information_tabs.addTab(Motor_Widget, 'Motor')
-        information_tabs.addTab(Structure_Widget, 'Structure')
+        information_tabs.addTab(Casing_Widget, 'Casing')
 
         plot_tabs = QTabWidget()
         plot_tabs.addTab(plot_thrust,'Thrust')
@@ -227,6 +267,28 @@ class MainWindow(QMainWindow):
             Simulation = BurnSimulation(Leviata, KNSB)
             SimulationData = BurnExport(Simulation)
             SimulationData.all_info()
+
+            Material = StructuralCasing.Material(
+            self.ultimate_tensile_strength_input,
+            self.shear_modulus_input,
+            self.yield_strength_input,
+            self.bearing_strength_input
+            )
+
+            Geometry = StructuralCasing.Geometry(
+            self.casing_inner_diameter_input,
+            self.minor_bolt_diameter_dict[self.bolt_types_widget.currentText()],
+            self.bolts_number_input,
+            self.wall_thickness_input,
+            self.edge_distance_input,
+            self.major_bolt_diameter_dict[self.bolt_types_widget.currentText()]
+            )
+
+            Casing = StructuralCasing.StructuralAnalysis(
+            SimulationData.max_chamber_pressure[0],
+            Material,
+            Geometry
+            )
 
             time_array = Simulation.time
             thrust_array = Simulation.thrust

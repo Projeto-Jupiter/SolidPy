@@ -45,3 +45,4 @@ from .Burn import Burn, BurnSimulation, BurnExport
 from .BurnEmpirical import BurnEmpirical, EmpiricalExport
 from .Environment import Environment
 from .Rail import Rail, RailExport
+from .StructuralCasing import StructuralAnalysis, Material, Geometry
