@@ -1,4 +1,4 @@
-import StructuralCasing
+from solidpy import StructuralCasing
 import numpy as np
 import matplotlib.pyplot as plt
 
