@@ -11,8 +11,8 @@ from solidpy import (
     Rail,
     BurnSimulation,
     Export,
+    StructuralCasing,
 )
-import StructuralCasing
 
 from solidpy.Burn import BurnExport
 
