@@ -39,6 +39,10 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QDialog,
     QMessageBox,
+    QToolBar, 
+    QAction, 
+    QStatusBar,
+    QShortcut,
 )
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -53,7 +57,7 @@ class MplCanvas(FigureCanvasQTAgg):
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__()
+        super(MainWindow,self).__init__()
         self.setWindowIcon(QtGui.QIcon('logo.ico'))
         self.setWindowIconText("logo")
         self.setWindowTitle("SolidPy GUI")
@@ -85,19 +89,20 @@ class MainWindow(QMainWindow):
         Grain_Layout = QGridLayout(Grain_Widget)
 
         Grain_Layout.addWidget(QLabel('Initial inner diameter(mm):'),0,0,Qt.AlignRight)
-        self.initial_inner_diameter_input = QLineEdit('31.92')
+        self.initial_inner_diameter_input = QLineEdit()
         Grain_Layout.addWidget(self.initial_inner_diameter_input,0,1,Qt.AlignLeft)
 
         Grain_Layout.addWidget(QLabel('Outer Diameter(mm):'),1,0,Qt.AlignRight)
-        self.outer_diameter_input = QLineEdit('71.92')
+        self.outer_diameter_input = QLineEdit('94')
         Grain_Layout.addWidget(self.outer_diameter_input,1,1,Qt.AlignLeft)
+        self.outer_diameter_input.setDisabled(True)
 
         Grain_Layout.addWidget(QLabel('Height(mm):'),2,0,Qt.AlignRight)
-        self.height_input = QLineEdit('123')
+        self.height_input = QLineEdit()
         Grain_Layout.addWidget(self.height_input,2,1,Qt.AlignLeft)
 
         Grain_Layout.addWidget(QLabel('Number:'),3,0,Qt.AlignRight)
-        self.number_input = QLineEdit('4')
+        self.number_input = QLineEdit()
         Grain_Layout.addWidget(self.number_input,3,1,Qt.AlignLeft)
 
         #create combobox for propellant selection
@@ -118,34 +123,40 @@ class MainWindow(QMainWindow):
         Motor_Layout = QGridLayout(Motor_Widget)
 
         Motor_Layout.addWidget(QLabel('Chamber Inner Diameter(mm):'),0,0,Qt.AlignRight)
-        self.chamber_inner_diameter_input = QLineEdit('77.92')
+        self.chamber_inner_diameter_input = QLineEdit('103.4')
+        self.chamber_inner_diameter_input.setDisabled(True)
         Motor_Layout.addWidget(self.chamber_inner_diameter_input,0,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Nozzle Throat Diameter(mm):'),1,0,Qt.AlignRight)
-        self.nozzle_throat_diameter_input = QLineEdit('17.5')
+        self.nozzle_throat_diameter_input = QLineEdit()
         Motor_Layout.addWidget(self.nozzle_throat_diameter_input,1,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Nozzle Exit Diameter(mm):'),2,0,Qt.AlignRight)
-        self.nozzle_exit_diameter_input = QLineEdit('44.44')
+        self.nozzle_exit_diameter_input = QLineEdit('67')
+        self.nozzle_exit_diameter_input.setDisabled(True)
         Motor_Layout.addWidget(self.nozzle_exit_diameter_input,2,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Nozzle Angle(deg):'),3,0,Qt.AlignRight)
         self.nozzle_angle_input = QLineEdit('15')
+        self.nozzle_angle_input.setDisabled(True)
         Motor_Layout.addWidget(self.nozzle_angle_input,3,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Chamber Lenght(mm):'),5,0,Qt.AlignRight)
-        self.chamber_lenght_input = QLineEdit('600')
-        Motor_Layout.addWidget(self.chamber_lenght_input,5,1,Qt.AlignLeft)
+        self.chamber_length_input = QLineEdit('1000')
+        self.chamber_length_input.setDisabled(True)
+        Motor_Layout.addWidget(self.chamber_length_input,5,1,Qt.AlignLeft)
 
         #bolts tab
         Bolts_Layout = QGridLayout(Bolts_Widget)
 
         Bolts_Layout.addWidget(QLabel('Ultimate Tensile Strenght(MPa):'),0,0,Qt.AlignRight)
         self.ultimate_tensile_strength_input = QLineEdit('515')
+        self.ultimate_tensile_strength_input.setDisabled(True)
         Bolts_Layout.addWidget(self.ultimate_tensile_strength_input,0,1,Qt.AlignLeft)
 
         Bolts_Layout.addWidget(QLabel('Bolts number:'),7,0,Qt.AlignRight)
         self.bolts_number_input = QLineEdit('12')
+        self.bolts_number_input.setDisabled(True)
         Bolts_Layout.addWidget(self.bolts_number_input,7,1,Qt.AlignLeft)
 
         Bolts_Layout.addWidget(QLabel('Bolt type:'),8,0,Qt.AlignRight)
@@ -155,20 +166,24 @@ class MainWindow(QMainWindow):
         self.minor_bolt_diameter_dict = {'M5x0.8':4.134,'M5x0.5':4.459,'M5.5x0.5':4.959,'M6x0.75':5.188,'M6x1':4.917,'M7x0.75':6.188,'M7x1':5.917,'M8x0.75':7.188,'M8x1':6.917,'M8x1.25':6.647} 
         self.major_bolt_diameter_dict = {'M5x0.5':5,'M5x0.8':5,'M5.5x0.5':5.5,'M6x0.75':6,'M6x1':6,'M7x0.75':7,'M7x1':7,'M8x0.75':8,'M8x1':8,'M8x1.25':8}
         self.bolt_types_widget.setCurrentIndex(4)
+        self.bolt_types_widget.setDisabled(True)
 
         #casing input tab
         Casing_Layout = QGridLayout(Casing_Widget)
 
         Casing_Layout.addWidget(QLabel('Yield Strength(MPa):'),1,0,Qt.AlignRight)
         self.yield_strength_input = QLineEdit('172')
+        self.yield_strength_input.setDisabled(True)
         Casing_Layout.addWidget(self.yield_strength_input,1,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Shear Strength(MPa):'),2,0,Qt.AlignRight)
-        self.shear_modulus_input = QLineEdit('138')
-        Casing_Layout.addWidget(self.shear_modulus_input,2,1,Qt.AlignLeft)
+        self.shear_strength_input = QLineEdit('138')
+        self.shear_strength_input.setDisabled(True)
+        Casing_Layout.addWidget(self.shear_strength_input,2,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Bearing Strength(MPa):'),3,0,Qt.AlignRight)
         self.bearing_strength_input = QLineEdit('434')
+        self.bearing_strength_input.setDisabled(True)
         Casing_Layout.addWidget(self.bearing_strength_input,3,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Casing inner diameter(mm):'),4,0,Qt.AlignRight)
@@ -178,10 +193,12 @@ class MainWindow(QMainWindow):
         
         Casing_Layout.addWidget(QLabel('Wall thickness(mm):'),5,0,Qt.AlignRight)
         self.wall_thickness_input = QLineEdit('5.49')
+        self.wall_thickness_input.setDisabled(True)
         Casing_Layout.addWidget(self.wall_thickness_input,5,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Edge distance(mm):'),6,0,Qt.AlignRight)
         self.edge_distance_input = QLineEdit('15')
+        self.edge_distance_input.setDisabled(True)
         Casing_Layout.addWidget(self.edge_distance_input,6,1,Qt.AlignLeft)
 
 
@@ -371,8 +388,8 @@ class MainWindow(QMainWindow):
                     self.propellant_combobox.addItem(file[:-5])
 
         def run():
-            self.casing_inner_diameter_input = self.chamber_inner_diameter_input.text()
-            export_button.setEnabled(True)
+            self.casing_inner_diameter_input.setText(self.chamber_inner_diameter_input.text())
+            export_thrust_action.setEnabled(True)
             #open the propellant json file and load the data
             folder = os.getcwd() + '\GUI\propellants data\ '
             propellant_file = open(folder[:-1] + self.propellant_combobox.currentText() + '.json', 'r')
@@ -388,10 +405,21 @@ class MainWindow(QMainWindow):
             burn_rate_n=ast.literal_eval(propellant_data[ 'burn_rate_n'])
             )
 
-            Bates_Grain = Bates(
-            outer_radius=ast.literal_eval(self.outer_diameter_input.text()) / 2000,
-            inner_radius=ast.literal_eval(self.initial_inner_diameter_input.text()) / 2000,
-            ) 
+            #if self.height_input.text() != None pass it to the Bates grain class divided by 1000'':
+            if self.height_input.text() != "None":
+                
+                Bates_Grain = Bates(
+                outer_radius=ast.literal_eval(self.outer_diameter_input.text()) / 2000,
+                inner_radius=ast.literal_eval(self.initial_inner_diameter_input.text()) / 2000,
+                height=ast.literal_eval(self.height_input.text())/1000,
+                )
+            
+            else:
+                Bates_Grain = Bates(
+                outer_radius=ast.literal_eval(self.outer_diameter_input.text()) / 2000,
+                inner_radius=ast.literal_eval(self.initial_inner_diameter_input.text()) / 2000,
+                height=ast.literal_eval(self.height_input.text()),
+                )
 
             Leviata = Motor(
             Bates_Grain,
@@ -400,22 +428,21 @@ class MainWindow(QMainWindow):
             nozzle_throat_radius=ast.literal_eval(self.nozzle_throat_diameter_input.text()) / 2000,
             nozzle_exit_radius=ast.literal_eval(self.nozzle_exit_diameter_input.text()) / 2000,
             nozzle_angle=ast.literal_eval(self.nozzle_angle_input.text()) * np.pi / 180,
-            chamber_length=ast.literal_eval(self.chamber_lenght_input.text()) / 1000,
+            chamber_length=ast.literal_eval(self.chamber_length_input.text()) / 1000,
             )
             
             Simulation = BurnSimulation(Leviata, KNSB)
             SimulationData = BurnExport(Simulation)
-            SimulationData.all_info()
 
             Material = StructuralCasing.Material(
             ast.literal_eval(self.ultimate_tensile_strength_input.text())*1e6,
-            ast.literal_eval(self.shear_modulus_input.text())*1e6,
+            ast.literal_eval(self.shear_strength_input.text())*1e6,
             ast.literal_eval(self.yield_strength_input.text())*1e6,
             ast.literal_eval(self.bearing_strength_input.text())*1e6
             )
 
             Geometry = StructuralCasing.Geometry(
-            casing_inside_diameter = ast.literal_eval(self.casing_inner_diameter_input)/1e3,
+            casing_inside_diameter = ast.literal_eval(self.casing_inner_diameter_input.text())/1e3,
             minor_bolt_diameter = self.minor_bolt_diameter_dict[self.bolt_types_widget.currentText()]/1e3,
             bolts_number = ast.literal_eval(self.bolts_number_input.text()),
             wall_thickness = ast.literal_eval(self.wall_thickness_input.text())/1e3,
@@ -479,7 +506,7 @@ class MainWindow(QMainWindow):
             
             for bolt_number in bolt_number_array:
                 Geometry = StructuralCasing.Geometry(
-                casing_inside_diameter=ast.literal_eval(self.casing_inner_diameter_input)/1e3,
+                casing_inside_diameter=ast.literal_eval(self.casing_inner_diameter_input.text())/1e3,
                 minor_bolt_diameter=self.minor_bolt_diameter_dict[self.bolt_types_widget.currentText()]/1e3,
                 bolts_number=bolt_number,
                 wall_thickness=ast.literal_eval(self.wall_thickness_input.text())/1e3,
@@ -518,7 +545,7 @@ class MainWindow(QMainWindow):
             
             for element in x_label_array:
                 Geometry = StructuralCasing.Geometry(
-                casing_inside_diameter=ast.literal_eval(self.casing_inner_diameter_input),
+                casing_inside_diameter=ast.literal_eval(self.casing_inner_diameter_input.text()),
                 minor_bolt_diameter=self.minor_bolt_diameter_dict[element],
                 bolts_number=ast.literal_eval(self.bolts_number_input.text()),
                 wall_thickness=ast.literal_eval(self.wall_thickness_input.text()),
@@ -556,7 +583,7 @@ class MainWindow(QMainWindow):
 
             for wall_thickness in wall_thickness_array:
                 Geometry = StructuralCasing.Geometry(
-                    casing_inside_diameter=ast.literal_eval(self.casing_inner_diameter_input)/1e3,
+                    casing_inside_diameter=ast.literal_eval(self.casing_inner_diameter_input.text())/1e3,
                     minor_bolt_diameter=self.minor_bolt_diameter_dict[self.bolt_types_widget.currentText()]/1e3,
                     bolts_number=ast.literal_eval(self.bolts_number_input.text()),
                     wall_thickness=wall_thickness/1e3,
@@ -599,32 +626,150 @@ class MainWindow(QMainWindow):
                     for i in range(len(Simulation.time)):
                         writer.writerow([Simulation.time[i], Simulation.thrust[i]])
 
+        #save inputs in a file
+        def save_inputs():
+
+            self.inputs = {
+                'Propellant': self.propellant_combobox.currentText(),
+                'Initial Inner Diameter': self.initial_inner_diameter_input.text(),
+                'Outer Diameter': self.outer_diameter_input.text(),
+                'Height': self.height_input.text(),
+                'Number of Grains': self.number_input.text(),
+                'Chamber Inner Diameter': self.chamber_inner_diameter_input.text(),
+                'Nozzle Throat Diameter': self.nozzle_throat_diameter_input.text(),
+                'Nozzle Exit Diameter': self.nozzle_exit_diameter_input.text(),
+                'Nozzle Angle': self.nozzle_angle_input.text(),
+                'Chamber Length': self.chamber_length_input.text(),
+                'Ultimate Tensile Strength': self.ultimate_tensile_strength_input.text(),
+                'Bolts Number': self.bolts_number_input.text(),
+                'Bolt Types': self.bolt_types_widget.currentText(),
+                'Yield Strength': self.yield_strength_input.text(),
+                'Shear strength': self.shear_strength_input.text(),
+                'Bearing Strength': self.bearing_strength_input.text(),
+                'Casing Inner Diameter': self.casing_inner_diameter_input.text(),
+                'Wall Thickness': self.wall_thickness_input.text(),
+                'Edge Distance': self.edge_distance_input.text(),
+                }
+
+            filename = QFileDialog.getSaveFileName(self, 'Save Simulation', 'Simulation', 'JSON(*.json)')
+            if filename[0]:
+                with open(filename[0], 'w') as file:
+                    json.dump(self.inputs, file)
+
+        #load inputs from a file
+        def load_inputs():
+            filename = QFileDialog.getOpenFileName(self, 'Load Simulation', 'Simulation', 'JSON(*.json)')
+            if filename[0]:
+                with open(filename[0], 'r') as file:
+                    self.inputs = json.load(file)
+
+            self.propellant_combobox.setCurrentText(self.inputs['Propellant'])
+            self.initial_inner_diameter_input.setText(self.inputs['Initial Inner Diameter'])
+            self.outer_diameter_input.setText(self.inputs['Outer Diameter'])
+            self.height_input.setText(self.inputs['Height'])
+            self.number_input.setText(self.inputs['Number of Grains'])
+            self.chamber_inner_diameter_input.setText(self.inputs['Chamber Inner Diameter'])
+            self.nozzle_throat_diameter_input.setText(self.inputs['Nozzle Throat Diameter'])
+            self.nozzle_exit_diameter_input.setText(self.inputs['Nozzle Exit Diameter'])
+            self.nozzle_angle_input.setText(self.inputs['Nozzle Angle'])
+            self.chamber_length_input.setText(self.inputs['Chamber Length'])
+            self.ultimate_tensile_strength_input.setText(self.inputs['Ultimate Tensile Strength'])
+            self.bolts_number_input.setText(self.inputs['Bolts Number'])
+            self.bolt_types_widget.setCurrentText(self.inputs['Bolt Types'])
+            self.yield_strength_input.setText(self.inputs['Yield Strength'])
+            self.shear_strength_input.setText(self.inputs['Shear strength'])
+            self.bearing_strength_input.setText(self.inputs['Bearing Strength'])
+            self.casing_inner_diameter_input.setText(self.inputs['Casing Inner Diameter'])
+            self.wall_thickness_input.setText(self.inputs['Wall Thickness'])
+            self.edge_distance_input.setText(self.inputs['Edge Distance'])
+
+        #abot dialog window
+        def about():
+            about_widget = QDialog()
+            about_widget.setWindowTitle('About')
+            about_widget.setFixedSize(400, 200)
+            about_widget_layout = QVBoxLayout()
+            about_widget.setLayout(about_widget_layout)
+
+            #add a image to the dialog window
+            about_widget_layout.addWidget(QLabel('Rocket Motor Design Tool'))
+            about_widget_layout.addWidget(QLabel('Developed by: Projeto Jupiter from Universidade de São Paulo'))
+            about_widget_layout.addWidget(QLabel('Version 0.0'))
+            about_widget_layout.addWidget(QLabel('Instagram: @projetojupiter'))
+            about_widget_layout.addWidget(QLabel('Email: projetojupiter@gmail.com'))
+            #make the link clickable
+            link = QLabel('GitHub: <a href="https://github.com/Projeto-Jupiter">https://github.com/Projeto-Jupiter</a>')
+            link.setOpenExternalLinks(True)
+            about_widget_layout.addWidget(link)
+            about_widget.exec_()
 
 
         input_layout.addWidget(information_tabs)
         propellant_editor_button = QPushButton('Propellant Editor')
         propellant_editor_button.clicked.connect(propellant_editor)
+        propellant_editor_button.setEnabled(False)
         Grain_Layout.addWidget(propellant_editor_button,5,0)
         refresh_propellant_combobox_button = QPushButton('Refresh Propellants')
         refresh_propellant_combobox_button.clicked.connect(refresh_propellant_combobox)
         Grain_Layout.addWidget(refresh_propellant_combobox_button,5,1)
-        #organize the grain layout widgets distances
 
 
 
 
-        run_button = QPushButton('Run Simulation')
-        run_button.clicked.connect(run)
-        button_layout.addWidget(run_button)
         # button_layout.addWidget(QPushButton('Save Simulation'))
-        export_button = QPushButton('Export Thrust Curve')
-        export_button.setEnabled(False)
-        export_button.clicked.connect(export_thrust_curve)
-        button_layout.addWidget(export_button)
         input_layout.addLayout(button_layout)
         pagelayout.addLayout(input_layout)
         pagelayout.addLayout(output_layout)
         output_layout.addStretch()
+
+        #create menu bar
+        toolbar = QToolBar("My main toolbar")
+        self.addToolBar(toolbar)
+
+        run_action = QAction("Run Simulation", self)
+        run_action.setStatusTip("Run Simulation")
+        run_action.triggered.connect(run)
+
+        export_thrust_action = QAction("Export Thrust Curve", self)
+        export_thrust_action.setEnabled(False)
+        export_thrust_action.setStatusTip("Export Thrust Curve")    
+        export_thrust_action.triggered.connect(export_thrust_curve)
+
+        save_input_action = QAction("Save", self)
+        save_input_action.setStatusTip("Save")
+        save_input_action.triggered.connect(save_inputs)
+
+        load_inputs_action = QAction("Open", self)
+        load_inputs_action.setStatusTip("Load")
+        load_inputs_action.triggered.connect(load_inputs)
+        
+        
+
+        toolbar.addAction(run_action)
+        toolbar.addAction(export_thrust_action)
+
+        #create status bar
+        self.setStatusBar(QStatusBar(self))
+
+        menu = self.menuBar()
+        file_menu = menu.addMenu('&File')
+        file_menu.addAction(save_input_action)
+        file_menu.addAction(load_inputs_action)
+        #link key commands to actions
+        QShortcut(QtGui.QKeySequence("Ctrl+S"), self, save_inputs)
+        QShortcut(QtGui.QKeySequence("Ctrl+O"), self, load_inputs)
+        QShortcut(QtGui.QKeySequence("Ctrl+R"), self, run)
+        QShortcut(QtGui.QKeySequence("Ctrl+E"), self, export_thrust_curve)
+
+
+        help_menu = menu.addMenu('&Help')
+        help_menu.addAction('About', about)
+        
+
+    
+
+
+
 
 
 
