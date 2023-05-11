@@ -80,9 +80,12 @@ class StructuralAnalysis:
 
         return(safety_factor)
 
-    def casing_circumferential_tresca(self):
-        stress = self.MEOP*self.geometry.casing_inside_diameter/(2*self.geometry.wall_thickness)
-        safety_factor = self.material.YTS / stress
+    def casing_circumferential_von_misses(self):
+        sigma_1 = self.MEOP*self.geometry.casing_inside_diameter/(2*self.geometry.wall_thickness)
+        sigma_2 = self.MEOP*self.geometry.casing_inside_diameter/(4*self.geometry.wall_thickness)
+        equivalent_stress = np.sqrt(((sigma_1-sigma_2)**2+(sigma_1)**2+(sigma_2)**2)/2)
+
+        safety_factor = self.material.YTS / equivalent_stress
 
         return safety_factor
 

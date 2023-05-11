@@ -90,20 +90,19 @@ class MainWindow(QMainWindow):
         Grain_Layout = QGridLayout(Grain_Widget)
 
         Grain_Layout.addWidget(QLabel('Initial inner diameter(mm):'),0,0,Qt.AlignRight)
-        self.initial_inner_diameter_input = QLineEdit()
+        self.initial_inner_diameter_input = QLineEdit('32')
         Grain_Layout.addWidget(self.initial_inner_diameter_input,0,1,Qt.AlignLeft)
 
         Grain_Layout.addWidget(QLabel('Outer Diameter(mm):'),1,0,Qt.AlignRight)
         self.outer_diameter_input = QLineEdit('94')
         Grain_Layout.addWidget(self.outer_diameter_input,1,1,Qt.AlignLeft)
-        self.outer_diameter_input.setDisabled(True)
 
         Grain_Layout.addWidget(QLabel('Height(mm):'),2,0,Qt.AlignRight)
-        self.height_input = QLineEdit()
+        self.height_input = QLineEdit('164')
         Grain_Layout.addWidget(self.height_input,2,1,Qt.AlignLeft)
 
         Grain_Layout.addWidget(QLabel('Number:'),3,0,Qt.AlignRight)
-        self.number_input = QLineEdit()
+        self.number_input = QLineEdit('5')
         Grain_Layout.addWidget(self.number_input,3,1,Qt.AlignLeft)
 
         #create combobox for propellant selection
@@ -125,39 +124,33 @@ class MainWindow(QMainWindow):
 
         Motor_Layout.addWidget(QLabel('Chamber Inner Diameter(mm):'),0,0,Qt.AlignRight)
         self.chamber_inner_diameter_input = QLineEdit('103.4')
-        self.chamber_inner_diameter_input.setDisabled(True)
         Motor_Layout.addWidget(self.chamber_inner_diameter_input,0,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Nozzle Throat Diameter(mm):'),1,0,Qt.AlignRight)
-        self.nozzle_throat_diameter_input = QLineEdit()
+        self.nozzle_throat_diameter_input = QLineEdit('22.8')
         Motor_Layout.addWidget(self.nozzle_throat_diameter_input,1,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Nozzle Exit Diameter(mm):'),2,0,Qt.AlignRight)
         self.nozzle_exit_diameter_input = QLineEdit('67')
-        self.nozzle_exit_diameter_input.setDisabled(True)
         Motor_Layout.addWidget(self.nozzle_exit_diameter_input,2,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Nozzle Angle(deg):'),3,0,Qt.AlignRight)
         self.nozzle_angle_input = QLineEdit('15')
-        self.nozzle_angle_input.setDisabled(True)
         Motor_Layout.addWidget(self.nozzle_angle_input,3,1,Qt.AlignLeft)
 
         Motor_Layout.addWidget(QLabel('Chamber Lenght(mm):'),5,0,Qt.AlignRight)
         self.chamber_length_input = QLineEdit('1000')
-        self.chamber_length_input.setDisabled(True)
         Motor_Layout.addWidget(self.chamber_length_input,5,1,Qt.AlignLeft)
 
         #bolts tab
         Bolts_Layout = QGridLayout(Bolts_Widget)
 
         Bolts_Layout.addWidget(QLabel('Ultimate Tensile Strenght(MPa):'),0,0,Qt.AlignRight)
-        self.ultimate_tensile_strength_input = QLineEdit('515')
-        self.ultimate_tensile_strength_input.setDisabled(True)
+        self.ultimate_tensile_strength_input = QLineEdit('1200')
         Bolts_Layout.addWidget(self.ultimate_tensile_strength_input,0,1,Qt.AlignLeft)
 
         Bolts_Layout.addWidget(QLabel('Bolts number:'),7,0,Qt.AlignRight)
         self.bolts_number_input = QLineEdit('12')
-        self.bolts_number_input.setDisabled(True)
         Bolts_Layout.addWidget(self.bolts_number_input,7,1,Qt.AlignLeft)
 
         Bolts_Layout.addWidget(QLabel('Bolt type:'),8,0,Qt.AlignRight)
@@ -167,39 +160,32 @@ class MainWindow(QMainWindow):
         self.minor_bolt_diameter_dict = {'M5x0.8':4.134,'M5x0.5':4.459,'M5.5x0.5':4.959,'M6x0.75':5.188,'M6x1':4.917,'M7x0.75':6.188,'M7x1':5.917,'M8x0.75':7.188,'M8x1':6.917,'M8x1.25':6.647} 
         self.major_bolt_diameter_dict = {'M5x0.5':5,'M5x0.8':5,'M5.5x0.5':5.5,'M6x0.75':6,'M6x1':6,'M7x0.75':7,'M7x1':7,'M8x0.75':8,'M8x1':8,'M8x1.25':8}
         self.bolt_types_widget.setCurrentIndex(4)
-        self.bolt_types_widget.setDisabled(True)
 
         #casing input tab
         Casing_Layout = QGridLayout(Casing_Widget)
 
         Casing_Layout.addWidget(QLabel('Yield Strength(MPa):'),1,0,Qt.AlignRight)
         self.yield_strength_input = QLineEdit('172')
-        self.yield_strength_input.setDisabled(True)
         Casing_Layout.addWidget(self.yield_strength_input,1,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Shear Strength(MPa):'),2,0,Qt.AlignRight)
         self.shear_strength_input = QLineEdit('138')
-        self.shear_strength_input.setDisabled(True)
         Casing_Layout.addWidget(self.shear_strength_input,2,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Bearing Strength(MPa):'),3,0,Qt.AlignRight)
         self.bearing_strength_input = QLineEdit('434')
-        self.bearing_strength_input.setDisabled(True)
         Casing_Layout.addWidget(self.bearing_strength_input,3,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Casing inner diameter(mm):'),4,0,Qt.AlignRight)
         self.casing_inner_diameter_input = QLineEdit('setted in motor tab')
-        self.casing_inner_diameter_input.setDisabled(True)
         Casing_Layout.addWidget(self.casing_inner_diameter_input,4,1,Qt.AlignLeft)
         
         Casing_Layout.addWidget(QLabel('Wall thickness(mm):'),5,0,Qt.AlignRight)
-        self.wall_thickness_input = QLineEdit('5.49')
-        self.wall_thickness_input.setDisabled(True)
+        self.wall_thickness_input = QLineEdit('2.1')
         Casing_Layout.addWidget(self.wall_thickness_input,5,1,Qt.AlignLeft)
 
         Casing_Layout.addWidget(QLabel('Edge distance(mm):'),6,0,Qt.AlignRight)
         self.edge_distance_input = QLineEdit('15')
-        self.edge_distance_input.setDisabled(True)
         Casing_Layout.addWidget(self.edge_distance_input,6,1,Qt.AlignLeft)
 
 
@@ -496,7 +482,7 @@ class MainWindow(QMainWindow):
             self.bolt_tear_out_output.setText("{:.2f}".format(Casing.bolt_tear_out()))
             self.casing_tensile_output.setText("{:.2f}".format(Casing.casing_tensile()))
             self.bearing_output.setText("{:.2f}".format(Casing.bearing()))
-            self.casing_circumferential_output.setText("{:.2f}".format(Casing.casing_circumferential_tresca()))
+            self.casing_circumferential_output.setText("{:.2f}".format(Casing.casing_circumferential_von_misses()))
 
             #safety_factor versus bolts_number plot
             bolt_number_array = [4,8,12,16,20,24]
@@ -580,7 +566,7 @@ class MainWindow(QMainWindow):
             safety_factor_bolt_tear_out_array = []
             safety_factor_casing_tensile_array = []
             safety_factor_bearing_array = []
-            safety_factor_circumferential_tresca_array = []
+            safety_factor_circumferential_von_misses_array = []
 
             for wall_thickness in wall_thickness_array:
                 Geometry = StructuralCasing.Geometry(
@@ -599,7 +585,7 @@ class MainWindow(QMainWindow):
                 safety_factor_bolt_tear_out_array.append(Casing.bolt_tear_out())
                 safety_factor_casing_tensile_array.append(Casing.casing_tensile())
                 safety_factor_bearing_array.append(Casing.bearing())
-                safety_factor_circumferential_tresca_array.append(Casing.casing_circumferential_tresca())
+                safety_factor_circumferential_von_misses_array.append(Casing.casing_circumferential_von_misses())
 
             plot_wall_thickness.axes.clear()
             plot_wall_thickness.axes.set_title('Safety Factor vs Wall Thickness')
@@ -609,7 +595,7 @@ class MainWindow(QMainWindow):
             plot_wall_thickness.axes.plot(wall_thickness_array, safety_factor_bolt_tear_out_array, label = 'Bolt Tear Out')
             plot_wall_thickness.axes.plot(wall_thickness_array, safety_factor_casing_tensile_array, label = 'Casing Tensile')
             plot_wall_thickness.axes.plot(wall_thickness_array, safety_factor_bearing_array, label = 'Bearing')
-            plot_wall_thickness.axes.plot(wall_thickness_array, safety_factor_circumferential_tresca_array, label = 'Casing Circumferential Tresca')
+            plot_wall_thickness.axes.plot(wall_thickness_array, safety_factor_circumferential_von_misses_array, label = 'Casing Circumferential Von Misses')
             plot_wall_thickness.axes.legend()
             plot_wall_thickness.axes.grid()
             plot_wall_thickness.draw()
